@@ -328,8 +328,10 @@ def draw_gomoku_board(screen, game_area, game, mouse_pos, board_size=19, percent
     # # Vérification des collisions avec les rectangles
     if game.inGame == True:
         adjusted_mousePos = (mouse_pos[0] - SCREEN_WIDTH / 3, mouse_pos[1])
-        mouseState = pygame.mouse.get_pressed()
-
+        mousePressed = False
+        for event in pygame.event.get():
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                mousePressed = True
         for row in range(board_size):
             for col in range(board_size):
                 rect = pygame.Rect(
@@ -339,7 +341,7 @@ def draw_gomoku_board(screen, game_area, game, mouse_pos, board_size=19, percent
                     cell_size,
                 )
                 if rect.collidepoint(adjusted_mousePos) and game.board[row][col] == ".":
-                    if mouseState[0] == True:
+                    if mousePressed == True:
                         game.playAt((row, col))
                     else:
                         # Dessiner une pierre semi-transparente
@@ -389,7 +391,7 @@ def main():
     # Creation du rectangle contenant la surface de jeu (partie droite de l'ecran)
     game_surface = pygame.Surface((SCREEN_WIDTH / 3 * 2, SCREEN_HEIGHT), pygame.SRCALPHA)
 
-    # Chargement de l'arriere plan
+    # Chargement de l'arriere plan 
     background_img = pygame.image.load("./images/bois bg.jpg").convert()
     background_img = pygame.transform.scale(background_img, (SCREEN_WIDTH, SCREEN_HEIGHT))
 
