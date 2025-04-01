@@ -1,12 +1,6 @@
 import pygame
 import random
 
-SCREEN_WIDTH = 1920
-SCREEN_HEIGHT = 1080
-
-HPC = SCREEN_HEIGHT / 100
-WPC = SCREEN_WIDTH / 3 / 100
-
 GRID_SIZE = 19
 STONE_WHITE = (230, 230, 230)
 STONE_BLACK = (43, 43, 43)
@@ -14,6 +8,18 @@ STONE_BLACK = (43, 43, 43)
 COLOR_MENU = (115, 61, 0, 200)
 COLOR_BUTTON = (64, 31, 1)
 COLOR_BUTTON_HOVER = (105, 52, 2)
+
+def updateScreenSize(width, height, isFullScreen):
+    global SCREEN_WIDTH, SCREEN_HEIGHT, HPC, WPC
+    SCREEN_HEIGHT = height
+    SCREEN_WIDTH = width
+
+    HPC = SCREEN_HEIGHT / 100
+    WPC = SCREEN_WIDTH // 3 / 100
+    if (isFullScreen):
+        return pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.FULLSCREEN), pygame.font.SysFont('Comic Sans MS', int(SCREEN_WIDTH * 0.026)), pygame.font.SysFont('Comic Sans MS', int(SCREEN_WIDTH * 0.013))
+    else:
+        return pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT)), pygame.font.SysFont('Comic Sans MS', int(SCREEN_WIDTH * 0.026)), pygame.font.SysFont('Comic Sans MS', int(SCREEN_WIDTH * 0.013))
 
 class Game:
     def __init__(self):
@@ -23,7 +29,8 @@ class Game:
         """Réinitialise le jeu à l'état initial."""
         self.inGame = False
         self.turn = 1
-        self.time = 99
+        self.time = 0
+        self.start_time = 0
         self.whoStart = "p1" if self.startPlayer() else "p2"
         self.whoPlay = self.whoStart if (self.turn % 2) else "p1" if (self.whoStart == "p2") else "p2"
         self.p1 = "Joueur 1"
@@ -33,6 +40,7 @@ class Game:
     
     def startGame(self):
         self.inGame = True
+        self.start_time = pygame.time.get_ticks()  
 
     def startPlayer(self):
         """Détermine aléatoirement qui commence."""
@@ -43,10 +51,14 @@ class Game:
         pygame.draw.rect(surface, (0, 0, 0), rect, 7)
         # text_surface = font.render("Tour de " + playerTurn, True, (0, 0, 0))
         # text_rect = text_surface.get_rect(topleft=rect.topleft + (50, 50))
+        elapsed_time = (pygame.time.get_ticks() - self.start_time) // 1000  # Temps écoulé en secondes
+        heures = elapsed_time // 3600
+        minutes = (elapsed_time % 3600) // 60
+        secondes = elapsed_time % 60
         text_lines = [
-            "Temps écoulé : 00:03:45",
+            f"Temps écoulé : {heures:02}:{minutes:02}:{secondes:02}",
             "Tour " + str(self.turn) + ".",
-            "Au " + (self.p1 if (self.whoPlay == "p1") else self.p2) + " de jouer."
+            "Aux " + ("blancs" if (self.whoPlay == "p1") else "noirs") + " de jouer."
         ]
         draw_text_in_rect(surface, rect, text_lines, font)
         # surface.blit(text_surface, text_rect)
@@ -327,7 +339,7 @@ def draw_gomoku_board(screen, game_area, game, mouse_pos, board_size=19, percent
 
     # # Vérification des collisions avec les rectangles
     if game.inGame == True:
-        adjusted_mousePos = (mouse_pos[0] - SCREEN_WIDTH / 3, mouse_pos[1])
+        adjusted_mousePos = (mouse_pos[0] - SCREEN_WIDTH // 3, mouse_pos[1])
         mousePressed = False
         for event in pygame.event.get():
             if event.type == pygame.MOUSEBUTTONDOWN:
@@ -355,8 +367,8 @@ def draw_gomoku_board(screen, game_area, game, mouse_pos, board_size=19, percent
     # else:
     #     draw_end_game_screen(screen, game)
 
-def getMenu(my_font, pos, logo, button_texts):
-    button_surface = pygame.Surface((SCREEN_WIDTH / 3, SCREEN_HEIGHT), pygame.SRCALPHA)
+def getMenu(title_font, pos, logo, button_texts):
+    button_surface = pygame.Surface((SCREEN_WIDTH // 3, SCREEN_HEIGHT), pygame.SRCALPHA)
     button_surface.fill(COLOR_MENU)
 
     # Boutons avec texte centré
@@ -371,8 +383,9 @@ def getMenu(my_font, pos, logo, button_texts):
         if rect.collidepoint(pos):
             button_color = COLOR_BUTTON_HOVER
             mouseOn = text
+            # NEED_UPDATE = True
         pygame.draw.rect(button_surface, button_color, rect)
-        draw_text_centered(button_surface, text, my_font, (255, 255, 255), rect)
+        draw_text_centered(button_surface, text, title_font, (255, 255, 255), rect)
     image_rect = logo.get_rect(center=(WPC * 50, HPC * 20))
     button_surface.blit(logo, image_rect)
 
@@ -385,11 +398,13 @@ def main():
     clock = pygame.time.Clock()
 
     # choix de font et création de la fenetre
-    my_font = pygame.font.SysFont('Comic Sans MS', 50)
-    screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
+    # title_font = pygame.font.SysFont('Comic Sans MS', 50)
+    infoObject = pygame.display.Info()
+    screen, title_font, little_font = updateScreenSize(infoObject.current_w, infoObject.current_h, True)
+    # screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.FULLSCREEN)
 
     # Creation du rectangle contenant la surface de jeu (partie droite de l'ecran)
-    game_surface = pygame.Surface((SCREEN_WIDTH / 3 * 2, SCREEN_HEIGHT), pygame.SRCALPHA)
+    game_surface = pygame.Surface((SCREEN_WIDTH // 3 * 2, SCREEN_HEIGHT), pygame.SRCALPHA)
 
     # Chargement de l'arriere plan 
     background_img = pygame.image.load("./images/bois bg.jpg").convert()
@@ -403,7 +418,7 @@ def main():
     logo = pygame.transform.scale(logo, (newW, newH))
 
     # HUD sur la gauche
-    hud_left = pygame.Surface((SCREEN_WIDTH / 3, SCREEN_HEIGHT), pygame.SRCALPHA)
+    hud_left = pygame.Surface((SCREEN_WIDTH // 3, SCREEN_HEIGHT), pygame.SRCALPHA)
     hud_left.fill(COLOR_MENU)
     image_rect = logo.get_rect(center=(WPC * 50, HPC * 20))
     hud_left.blit(logo, image_rect)
@@ -411,60 +426,85 @@ def main():
 
     # noms des bouttons du menu
     menu_accueil = ["JOUER", "OPTIONS", "QUITTER"]
-    menu_jouer = ["SEUL CONTRE L'IA", "PARTIE LOCAL", "RETOUR"]
-    menu_option = ["OUI", "NON", "RETOUR"]
+    menu_jouer = ["SOLO", "PARTIE LOCAL", "RETOUR"]
+    menu_option = ["PLEIN ECRAN", "FENÊTRÉ", "RETOUR"]
+    menu_fenetre = ["1280X720", "1600X900", "1920X1080", "RETOUR"]
     menu_ingame = ["RETOUR"]
 
     menu_actif = menu_accueil
     run = True
     
     game = Game()
-
     # Boucle principale du jeu
+    # global NEED_UPDATE
+    # NEED_UPDATE = True
     while run:
         clock.tick(60) # 60 fps max
         pos = pygame.mouse.get_pos()
-        # screen.fill((0, 0, 0)) # reset l'ecran a chaque boucle --- vraiment necessaire ???
-        
+
         screen.blit(background_img, (0, 0))
 
         # creation du menu
         mouseOn = "none"
 
         if menu_actif != "none":
-            menu_surface, mouseOn = getMenu(my_font, pos, logo, menu_actif)
+            menu_surface, mouseOn = getMenu(title_font, pos, logo, menu_actif)
 
         # affiche le plateau du jeu dans la grande zone
-        
         if menu_actif == menu_ingame:
             gameState = draw_gomoku_board(screen, game_surface, game, pos)
             # if (gameState == "reset"):
             #     game.reset()
-            screen.blit(game_surface, ((SCREEN_WIDTH / 3, 0)))
-            game.dispInfoOn(menu_surface, my_font)
+            screen.blit(game_surface, ((SCREEN_WIDTH // 3, 0)))
+            game.dispInfoOn(menu_surface, little_font)
             screen.blit(menu_surface, (0, 0))
             if (game.inGame == False):
                 draw_end_game_screen(screen, game)
-
         if menu_actif != menu_ingame:
             screen.blit(menu_surface, (0, 0))
+            # NEED_UPDATE = False
 
+        # if not NEED_UPDATE:
+        #         screen.blit(menu_surface, (0, 0))
         # print(mouseOn)
 
         # gestion des events
         for event in pygame.event.get():
+            # if event.type in [pygame.MOUSEBUTTONDOWN, pygame.QUIT]:  
+                # NEED_UPDATE = True  # On force un refresh si un bouton est cliqué ou si on quitte
             if event.type == pygame.MOUSEBUTTONDOWN:
                 if mouseOn == "JOUER":
                     menu_actif = menu_jouer
+                    # NEED_UPDATE = True  # Nécessaire car on change d'écran
                 elif mouseOn == "OPTIONS":
                     menu_actif = menu_option
+                    # NEED_UPDATE = True
                 elif mouseOn == "QUITTER":
                     run = False
                 elif mouseOn == "PARTIE LOCAL":
                     menu_actif = menu_ingame
+                    # NEED_UPDATE = True
                     game.startGame()
+                elif mouseOn == "ECRAN PLEIN":
+                    screen, title_font, little_font = updateScreenSize(infoObject.current_w, infoObject.current_h, True)
+                elif mouseOn == "FENÊTRÉ":
+                    menu_actif = menu_fenetre
+                    # NEED_UPDATE = True
+                elif mouseOn == "1280X720":
+                    screen, title_font, little_font = updateScreenSize(1280, 720, False)
+                    # NEED_UPDATE = True
+                elif mouseOn == "1600X900":
+                    screen, title_font, little_font = updateScreenSize(1600, 900, False)
+                    # NEED_UPDATE = True
+                elif mouseOn == "1920X1080":
+                    screen, title_font, little_font = updateScreenSize(1920, 1080, False)
+                    # NEED_UPDATE = True
                 elif mouseOn == "RETOUR":
-                    menu_actif = menu_accueil
+                    if menu_actif == menu_fenetre:
+                        menu_actif = menu_option
+                    else:
+                        menu_actif = menu_accueil
+                    # NEED_UPDATE = True
                     game.reset()
             if event.type == pygame.QUIT:
                 run = False
