@@ -413,8 +413,10 @@ def main():
     # Chargement du logo, scale a la bonne taille en conservant le ratio HEIGHT/WIDTH
     logo = pygame.image.load("./images/logo gomoku.png")
     aspect_ratio = logo.get_height() / logo.get_width()
-    newW = 1/2 * WPC * 100
-    newH = newW * aspect_ratio
+    newH = 30 * HPC
+    newW =  newH / aspect_ratio
+    # newH = newW * aspect_ratio
+    # newW = 1/2 * WPC * 100
     logo = pygame.transform.scale(logo, (newW, newH))
 
     # HUD sur la gauche
@@ -443,7 +445,9 @@ def main():
         pos = pygame.mouse.get_pos()
 
         screen.blit(background_img, (0, 0))
-
+        newH = 30 * HPC
+        newW =  newH / aspect_ratio
+        logo = pygame.transform.scale(logo, (newW, newH))
         # creation du menu
         mouseOn = "none"
 
@@ -485,7 +489,7 @@ def main():
                     menu_actif = menu_ingame
                     # NEED_UPDATE = True
                     game.startGame()
-                elif mouseOn == "ECRAN PLEIN":
+                elif mouseOn == "PLEIN ECRAN":
                     screen, title_font, little_font = updateScreenSize(infoObject.current_w, infoObject.current_h, True)
                 elif mouseOn == "FENÊTRÉ":
                     menu_actif = menu_fenetre
