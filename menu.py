@@ -17,9 +17,9 @@ def updateScreenSize(width, height, isFullScreen):
     HPC = SCREEN_HEIGHT / 100
     WPC = SCREEN_WIDTH // 3 / 100
     if (isFullScreen):
-        return pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.FULLSCREEN), pygame.font.SysFont('Comic Sans MS', int(SCREEN_WIDTH * 0.026)), pygame.font.SysFont('Comic Sans MS', int(SCREEN_WIDTH * 0.013))
+        return pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.FULLSCREEN), pygame.font.SysFont('Comic Sans MS', int(SCREEN_WIDTH * 0.026)), pygame.font.SysFont('Comic Sans MS', int(SCREEN_WIDTH * 0.017))
     else:
-        return pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT)), pygame.font.SysFont('Comic Sans MS', int(SCREEN_WIDTH * 0.026)), pygame.font.SysFont('Comic Sans MS', int(SCREEN_WIDTH * 0.013))
+        return pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT)), pygame.font.SysFont('Comic Sans MS', int(SCREEN_WIDTH * 0.026)), pygame.font.SysFont('Comic Sans MS', int(SCREEN_WIDTH * 0.017))
 
 class Game:
     def __init__(self):
@@ -58,7 +58,7 @@ class Game:
         text_lines = [
             f"Temps écoulé : {heures:02}:{minutes:02}:{secondes:02}",
             "Tour " + str(self.turn) + ".",
-            "Aux " + ("blancs" if (self.whoPlay == "p1") else "noirs") + " de jouer."
+            "Aux " + ("noirs" if (self.whoPlay == "p1") else "blancs") + " de jouer."
         ]
         draw_text_in_rect(surface, rect, text_lines, font)
         # surface.blit(text_surface, text_rect)
@@ -99,7 +99,6 @@ class Game:
 
     def checkIfAutorized(self, coords, symbol):
         ret = self.is_move_allowed(coords, symbol)
-        print(ret)
         return ret
 
     def is_move_allowed(self, coords, player):
@@ -285,6 +284,7 @@ def draw_gomoku_board(screen, game_area, game, mouse_pos, event, board_size=19, 
     # Taille du plateau basée sur 80% de l'axe le plus grand
     board_pixel_size = int(min(screen_width, screen_height) * percentage)
     cell_size = board_pixel_size // (board_size - 1)  # Taille d'une cellule en pixels
+    piece_size = cell_size * 0.4 # Taille d'un pion
 
     # Calcul des marges pour centrer le plateau
     margin_x = (screen_width - board_pixel_size) // 2
@@ -330,12 +330,12 @@ def draw_gomoku_board(screen, game_area, game, mouse_pos, event, board_size=19, 
             if (cross == "1"):
                 center_x = margin_x + idx_col * cell_size
                 center_y = margin_y + idx_line * cell_size
-                pygame.draw.circle(game_area, STONE_BLACK, (center_x, center_y), 20)
+                pygame.draw.circle(game_area, STONE_BLACK, (center_x, center_y), piece_size)
             if (cross == "2"):
                 center_x = margin_x + idx_col * cell_size
                 center_y = margin_y + idx_line * cell_size
-                pygame.draw.circle(game_area, STONE_WHITE, (center_x, center_y), 20)
-                pygame.draw.circle(game_area, STONE_BLACK, (center_x, center_y), 20, 2)
+                pygame.draw.circle(game_area, STONE_WHITE, (center_x, center_y), piece_size)
+                pygame.draw.circle(game_area, STONE_BLACK, (center_x, center_y), piece_size, 2)
 
     # # Vérification des collisions avec les rectangles
     if game.inGame == True:
@@ -358,11 +358,11 @@ def draw_gomoku_board(screen, game_area, game, mouse_pos, event, board_size=19, 
                         # Dessiner une pierre semi-transparente
                         stone_color = STONE_BLACK if game.whoPlay == "p1" else STONE_WHITE
                         alpha = 128  # Transparence (50%)
-                        overlay = pygame.Surface((40, 40), pygame.SRCALPHA)
-                        pygame.draw.circle(overlay, (*stone_color, alpha), (20, 20), 20)
+                        overlay = pygame.Surface((piece_size * 2, piece_size * 2), pygame.SRCALPHA)
+                        pygame.draw.circle(overlay, (*stone_color, alpha), (piece_size, piece_size), piece_size)
                         if game.whoPlay == "p2":
-                            pygame.draw.circle(overlay, (*STONE_BLACK, alpha), (20, 20), 20, 2)
-                        game_area.blit(overlay, (rect.centerx - 20, rect.centery - 20))
+                            pygame.draw.circle(overlay, (*STONE_BLACK, alpha), (piece_size, piece_size), piece_size, 2)
+                        game_area.blit(overlay, (rect.centerx - piece_size, rect.centery - piece_size))
     # else:
     #     draw_end_game_screen(screen, game)
 
