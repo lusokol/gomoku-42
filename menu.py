@@ -73,7 +73,7 @@ class Game:
                 self.turn += 1
                 self.whoPlay = self.whoStart if (self.turn % 2) else "p1" if (self.whoStart == "p2") else "p2"
         else:
-            print("nope !!")
+            print("Coup interdit !")
     
     def checkAlignments(self, symbol, coords):
         directions = [
@@ -269,7 +269,7 @@ def draw_end_game_screen(screen, game):
         text_rect = text_surface.get_rect(midtop=(SCREEN_WIDTH // 2, y_start + idx * 60))  # 60px entre chaque ligne
         screen.blit(text_surface, text_rect)
 
-def draw_gomoku_board(screen, game_area, game, mouse_pos, board_size=19, percentage=0.8, line_color=(0, 0, 0), background_color=(255, 223, 186, 0)):
+def draw_gomoku_board(screen, game_area, game, mouse_pos, event, board_size=19, percentage=0.8, line_color=(0, 0, 0), background_color=(255, 223, 186, 0)):
     """
     Dessine un plateau de Gomoku centré sur l'écran avec une taille basée sur 80% de l'axe le plus grand.
 
@@ -341,9 +341,8 @@ def draw_gomoku_board(screen, game_area, game, mouse_pos, board_size=19, percent
     if game.inGame == True:
         adjusted_mousePos = (mouse_pos[0] - SCREEN_WIDTH // 3, mouse_pos[1])
         mousePressed = False
-        for event in pygame.event.get():
-            if event.type == pygame.MOUSEBUTTONDOWN:
-                mousePressed = True
+        if event:
+            mousePressed = True
         for row in range(board_size):
             for col in range(board_size):
                 rect = pygame.Rect(
@@ -444,28 +443,33 @@ def main():
         clock.tick(60) # 60 fps max
         pos = pygame.mouse.get_pos()
 
+        # necessaire uniquement lors d'un changement de taille de screen
         screen.blit(background_img, (0, 0))
         newH = 30 * HPC
         newW =  newH / aspect_ratio
         logo = pygame.transform.scale(logo, (newW, newH))
+        game_surface = pygame.Surface((SCREEN_WIDTH // 3 * 2, SCREEN_HEIGHT), pygame.SRCALPHA)
+
         # creation du menu
         mouseOn = "none"
 
         if menu_actif != "none":
             menu_surface, mouseOn = getMenu(title_font, pos, logo, menu_actif)
 
-        # affiche le plateau du jeu dans la grande zone
-        if menu_actif == menu_ingame:
-            gameState = draw_gomoku_board(screen, game_surface, game, pos)
-            # if (gameState == "reset"):
-            #     game.reset()
-            screen.blit(game_surface, ((SCREEN_WIDTH // 3, 0)))
-            game.dispInfoOn(menu_surface, little_font)
-            screen.blit(menu_surface, (0, 0))
-            if (game.inGame == False):
-                draw_end_game_screen(screen, game)
-        if menu_actif != menu_ingame:
-            screen.blit(menu_surface, (0, 0))
+        # # affiche le plateau du jeu dans la grande zone
+        # if menu_actif == menu_ingame:
+        #     gameState = draw_gomoku_board(screen, game_surface, game, pos, event)
+        #     # if (gameState == "reset"):
+        #     #     game.reset()
+        #     screen.blit(game_surface, ((SCREEN_WIDTH // 3, 0)))
+        #     game.dispInfoOn(menu_surface, little_font)
+        #     screen.blit(menu_surface, (0, 0))
+        #     if (game.inGame == False):
+        #         draw_end_game_screen(screen, game)
+        # if menu_actif != menu_ingame:
+        #     screen.blit(menu_surface, (0, 0))
+
+
             # NEED_UPDATE = False
 
         # if not NEED_UPDATE:
@@ -473,11 +477,14 @@ def main():
         # print(mouseOn)
 
         # gestion des events
+        clickedOutside = False
         for event in pygame.event.get():
             # if event.type in [pygame.MOUSEBUTTONDOWN, pygame.QUIT]:  
                 # NEED_UPDATE = True  # On force un refresh si un bouton est cliqué ou si on quitte
             if event.type == pygame.MOUSEBUTTONDOWN:
-                if mouseOn == "JOUER":
+                if pos[0] > SCREEN_WIDTH // 3:
+                    clickedOutside = True
+                elif mouseOn == "JOUER":
                     menu_actif = menu_jouer
                     # NEED_UPDATE = True  # Nécessaire car on change d'écran
                 elif mouseOn == "OPTIONS":
@@ -512,6 +519,18 @@ def main():
                     game.reset()
             if event.type == pygame.QUIT:
                 run = False
+        # affiche le plateau du jeu dans la grande zone
+        if menu_actif == menu_ingame:
+            gameState = draw_gomoku_board(screen, game_surface, game, pos, clickedOutside)
+            # if (gameState == "reset"):
+            #     game.reset()
+            screen.blit(game_surface, ((SCREEN_WIDTH // 3, 0)))
+            game.dispInfoOn(menu_surface, little_font)
+            screen.blit(menu_surface, (0, 0))
+            if (game.inGame == False):
+                draw_end_game_screen(screen, game)
+        if menu_actif != menu_ingame:
+            screen.blit(menu_surface, (0, 0))
         pygame.display.flip()
 
     pygame.quit()
