@@ -51,9 +51,9 @@ class Game:
 
     def addCapturePiece(self):
         if self.whoPlay == "p1":
-            self.p1_piece += 2
+            self.p1_piece += 1
         else:
-            self.p2_piece += 2
+            self.p2_piece += 1
 
     def playAt(self, coords):
         symbol = "1" if self.whoPlay == "p1" else "2"
@@ -61,9 +61,10 @@ class Game:
         if isCapture or self.checkIfAutorized(coords, symbol):
             self.board[coords[0]][coords[1]] = symbol
             if isCapture:
-                self.board[pieceCaptured[0][0]][pieceCaptured[0][1]] = "."
-                self.board[pieceCaptured[1][0]][pieceCaptured[1][1]] = "."
-                self.addCapturePiece()
+                for piece in pieceCaptured:
+                    self.board[piece[0]][piece[1]] = "."
+                    self.addCapturePiece()
+                # self.board[pieceCaptured[1][0]][pieceCaptured[1][1]] = "."
             if self.checkAlignments(symbol, coords):
                 self.inGame = False
             else:
