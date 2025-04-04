@@ -13,6 +13,8 @@ class Game:
         self.turn = 1
         self.time = 0
         self.start_time = 0
+        self.p1_piece = 0
+        self.p2_piece = 0
         self.whoStart = "p1" if self.startPlayer() else "p2"
         self.whoPlay = self.whoStart if (self.turn % 2) else "p1" if (self.whoStart == "p2") else "p2"
         self.p1 = "Joueur 1"
@@ -40,15 +42,28 @@ class Game:
         text_lines = [
             f"Temps écoulé : {heures:02}:{minutes:02}:{secondes:02}",
             "Tour " + str(self.turn) + ".",
-            "Aux " + ("noirs" if (self.whoPlay == "p1") else "blancs") + " de jouer."
+            "Aux " + ("noirs" if (self.whoPlay == "p1") else "blancs") + " de jouer.",
+            f"Les noirs ont capturé {self.p1_piece} pions.",
+            f"Les blancs ont capturé {self.p2_piece} pions."
         ]
         draw_text_in_rect(surface, rect, text_lines, font)
         # surface.blit(text_surface, text_rect)
 
+    def addCapturePiece(self):
+        if self.whoPlay == "p1":
+            self.p1_piece += 2
+        else:
+            self.p2_piece += 2
+
     def playAt(self, coords):
         symbol = "1" if self.whoPlay == "p1" else "2"
-        if self.checkIfAutorized(coords, symbol):
+        isCapture, pieceCaptured = self.check_if_capture(coords, symbol)
+        if isCapture or self.checkIfAutorized(coords, symbol):
             self.board[coords[0]][coords[1]] = symbol
+            if isCapture:
+                self.board[pieceCaptured[0][0]][pieceCaptured[0][1]] = "."
+                self.board[pieceCaptured[1][0]][pieceCaptured[1][1]] = "."
+                self.addCapturePiece()
             if self.checkAlignments(symbol, coords):
                 self.inGame = False
             else:
@@ -57,6 +72,51 @@ class Game:
         else:
             print("Coup interdit !")
     
+    def check_if_capture(self, coords, symbol):
+        row, col = coords
+        board = self.board
+
+        # Vérifier si la case est déjà occupée
+        if board[row][col] != ".":
+            return False, []
+
+        # Directions à vérifier pour trouver des captures
+        directions = [
+            (0, 1),   # Droite
+            (0, -1),  # Gauche
+            (1, 0),   # Bas
+            (-1, 0),  # Haut
+            (1, 1),   # Diagonale descendante droite
+            (-1, -1), # Diagonale montante gauche
+            (1, -1),  # Diagonale descendante gauche
+            (-1, 1),  # Diagonale montante droite
+        ]
+        
+        actual_player = symbol
+        opponent = "1" if symbol == "2" else "2"
+        captured_pawns = []
+
+        for dr, dc in directions:
+            # Vérifier la présence de deux pions adverses consécutifs
+            first_opponent = (row + dr, col + dc)
+            second_opponent = (row + 2 * dr, col + 2 * dc)
+            end_cell = (row + 3 * dr, col + 3 * dc)
+
+            if (
+                self.is_within_bounds(first_opponent) and board[first_opponent[0]][first_opponent[1]] == opponent and
+                self.is_within_bounds(second_opponent) and board[second_opponent[0]][second_opponent[1]] == opponent and
+                self.is_within_bounds(end_cell) and board[end_cell[0]][end_cell[1]] == actual_player
+            ):
+                captured_pawns.extend([first_opponent, second_opponent])
+
+        return (len(captured_pawns) > 0), captured_pawns
+
+    def is_within_bounds(self, coords):
+        row, col = coords
+        return 0 <= row < len(self.board) and 0 <= col < len(self.board[0])
+
+
+        
     def checkAlignments(self, symbol, coords):
         directions = [
             (0, 1),   # Horizontal
