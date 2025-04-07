@@ -3,10 +3,11 @@ import pygame
 import config
 from utile import placeButtonAtPercent, draw_text_in_rect
 
+
 class Game:
     def __init__(self):
         self.reset()
-    
+
     def reset(self):
         """Réinitialise le jeu à l'état initial."""
         self.inGame = False
@@ -16,15 +17,20 @@ class Game:
         self.p1_piece = 0
         self.p2_piece = 0
         self.whoStart = "p1" if self.startPlayer() else "p2"
-        self.whoPlay = self.whoStart if (self.turn % 2) else "p1" if (self.whoStart == "p2") else "p2"
+        self.whoPlay = (
+            self.whoStart
+            if (self.turn % 2)
+            else "p1" if (self.whoStart == "p2") else "p2"
+        )
         self.p1 = "Joueur 1"
         self.p2 = "Joueur 2"
-        # self.board = [["." if _ % 3 == 0 else "1" if _ % 3 == 1 else "2" for _ in range(config.GRID_SIZE)] for _ in range(config.GRID_SIZE)]
-        self.board = [["." for _ in range(config.GRID_SIZE)] for _ in range(config.GRID_SIZE)]
-    
+        self.board = [
+            ["." for _ in range(config.GRID_SIZE)] for _ in range(config.GRID_SIZE)
+        ]
+
     def startGame(self):
         self.inGame = True
-        self.start_time = pygame.time.get_ticks()  
+        self.start_time = pygame.time.get_ticks()
 
     def startPlayer(self):
         """Détermine aléatoirement qui commence."""
@@ -35,7 +41,9 @@ class Game:
         pygame.draw.rect(surface, (0, 0, 0), rect, 7)
         # text_surface = font.render("Tour de " + playerTurn, True, (0, 0, 0))
         # text_rect = text_surface.get_rect(topleft=rect.topleft + (50, 50))
-        elapsed_time = (pygame.time.get_ticks() - self.start_time) // 1000  # Temps écoulé en secondes
+        elapsed_time = (
+            pygame.time.get_ticks() - self.start_time
+        ) // 1000  # Temps écoulé en secondes
         heures = elapsed_time // 3600
         minutes = (elapsed_time % 3600) // 60
         secondes = elapsed_time % 60
@@ -44,7 +52,7 @@ class Game:
             "Tour " + str(self.turn) + ".",
             "Aux " + ("noirs" if (self.whoPlay == "p1") else "blancs") + " de jouer.",
             f"Les noirs ont capturé {self.p1_piece} pions.",
-            f"Les blancs ont capturé {self.p2_piece} pions."
+            f"Les blancs ont capturé {self.p2_piece} pions.",
         ]
         draw_text_in_rect(surface, rect, text_lines, font)
         # surface.blit(text_surface, text_rect)
@@ -69,10 +77,14 @@ class Game:
                 self.inGame = False
             else:
                 self.turn += 1
-                self.whoPlay = self.whoStart if (self.turn % 2) else "p1" if (self.whoStart == "p2") else "p2"
+                self.whoPlay = (
+                    self.whoStart
+                    if (self.turn % 2)
+                    else "p1" if (self.whoStart == "p2") else "p2"
+                )
         else:
             print("Coup interdit !")
-    
+
     def check_if_capture(self, coords, symbol):
         row, col = coords
         board = self.board
@@ -83,16 +95,16 @@ class Game:
 
         # Directions à vérifier pour trouver des captures
         directions = [
-            (0, 1),   # Droite
+            (0, 1),  # Droite
             (0, -1),  # Gauche
-            (1, 0),   # Bas
+            (1, 0),  # Bas
             (-1, 0),  # Haut
-            (1, 1),   # Diagonale descendante droite
-            (-1, -1), # Diagonale montante gauche
+            (1, 1),  # Diagonale descendante droite
+            (-1, -1),  # Diagonale montante gauche
             (1, -1),  # Diagonale descendante gauche
             (-1, 1),  # Diagonale montante droite
         ]
-        
+
         actual_player = symbol
         opponent = "1" if symbol == "2" else "2"
         captured_pawns = []
@@ -104,9 +116,12 @@ class Game:
             end_cell = (row + 3 * dr, col + 3 * dc)
 
             if (
-                self.is_within_bounds(first_opponent) and board[first_opponent[0]][first_opponent[1]] == opponent and
-                self.is_within_bounds(second_opponent) and board[second_opponent[0]][second_opponent[1]] == opponent and
-                self.is_within_bounds(end_cell) and board[end_cell[0]][end_cell[1]] == actual_player
+                self.is_within_bounds(first_opponent)
+                and board[first_opponent[0]][first_opponent[1]] == opponent
+                and self.is_within_bounds(second_opponent)
+                and board[second_opponent[0]][second_opponent[1]] == opponent
+                and self.is_within_bounds(end_cell)
+                and board[end_cell[0]][end_cell[1]] == actual_player
             ):
                 captured_pawns.extend([first_opponent, second_opponent])
 
@@ -116,13 +131,11 @@ class Game:
         row, col = coords
         return 0 <= row < len(self.board) and 0 <= col < len(self.board[0])
 
-
-        
     def checkAlignments(self, symbol, coords):
         directions = [
-            (0, 1),   # Horizontal
-            (1, 0),   # Vertical
-            (1, 1),   # Diagonale descendante
+            (0, 1),  # Horizontal
+            (1, 0),  # Vertical
+            (1, 1),  # Diagonale descendante
             (1, -1),  # Diagonale montante
         ]
         for dv, dh in directions:
@@ -132,7 +145,11 @@ class Game:
                 while True:
                     r += step * dv
                     c += step * dh
-                    if 0 <= r < config.GRID_SIZE and 0 <= c < config.GRID_SIZE and self.board[r][c] == symbol:
+                    if (
+                        0 <= r < config.GRID_SIZE
+                        and 0 <= c < config.GRID_SIZE
+                        and self.board[r][c] == symbol
+                    ):
                         count += 1
                     else:
                         break
@@ -165,9 +182,9 @@ class Game:
 
         # Directions à vérifier pour trouver des free-threes
         directions = [
-            (0, 1),   # Horizontal
-            (1, 0),   # Vertical
-            (1, 1),   # Diagonale descendante
+            (0, 1),  # Horizontal
+            (1, 0),  # Vertical
+            (1, 1),  # Diagonale descendante
             (1, -1),  # Diagonale montante
         ]
 
@@ -204,7 +221,10 @@ class Game:
             ]
 
             for pattern in patterns:
-                if any(line[i:i + len(pattern)] == pattern for i in range(len(line) - len(pattern) + 1)):
+                if any(
+                    line[i : i + len(pattern)] == pattern
+                    for i in range(len(line) - len(pattern) + 1)
+                ):
                     return True
 
             return False
