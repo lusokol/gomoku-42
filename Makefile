@@ -1,5 +1,5 @@
 # Le fichier principal de ton projet
-MAIN = menu.py
+MAIN = srcs/menu.py
 
 # Commande pour exécuter ton projet
 run:
