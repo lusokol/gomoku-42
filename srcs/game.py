@@ -2,6 +2,7 @@ import random
 import pygame
 import config
 from utile import placeButtonAtPercent, draw_text_in_rect
+from algo import get_ai_move
 
 
 class Game:
@@ -404,3 +405,4 @@ class Game:
 
         # Si aucun double free-three n'est détecté, le mouvement est autorisé
         return True
+    
