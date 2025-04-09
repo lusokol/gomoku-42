@@ -114,29 +114,6 @@ class Game:
         self.winner = "draw"
         print("Égalité !")
 
-    # def playAt(self, coords):
-    #     symbol = "1" if self.whoPlay == "p1" else "2"
-    #     isCapture, pieceCaptured = self.check_if_capture(coords, symbol)
-    #     if isCapture or self.checkIfAutorized(coords, symbol):
-    #         self.board[coords[0]][coords[1]] = symbol
-    #         if isCapture:
-    #             for piece in pieceCaptured:
-    #                 self.board[piece[0]][piece[1]] = "."
-    #                 self.addCapturePiece()
-    #         if self.checkAlignments(symbol, coords) or max(self.p1_piece, self.p2_piece) >= 10:
-    #             self.time.stop()
-    #             self.setWinner()
-    #             self.inGame = False
-    #         else:
-    #             self.turn += 1
-    #             self.whoPlay = (
-    #                 self.whoStart
-    #                 if (self.turn % 2)
-    #                 else "p1" if (self.whoStart == "p2") else "p2"
-    #             )
-    #     else:
-    #         print("Coup interdit !")
-
     def getSymbolFromPlayer(self, player):
         return "1" if player == "p1" else "2"
 
@@ -185,8 +162,13 @@ class Game:
 
             # Vérifie s'il y a une nouvelle ligne gagnante
             if self.checkAlignments(symbol, coords):
-                self.pending_win = {"player": self.whoPlay, "coords": coords}
-                self.nextTurn()
+                if self.checkIfLineIsBreakable(symbol, coords):
+                    self.pending_win = {"player": self.whoPlay, "coords": coords}
+                    self.nextTurn()
+                else:
+                    self.time.stop()
+                    self.setWinner()
+                    self.inGame = False
             elif max(self.p1_piece, self.p2_piece) >= 10:
                 self.time.stop()
                 self.setWinner()
@@ -241,6 +223,76 @@ class Game:
     def is_within_bounds(self, coords):
         row, col = coords
         return 0 <= row < len(self.board) and 0 <= col < len(self.board[0])
+
+    def checkIfLineIsBreakable(self, symbol, coords):
+        directions = [
+            (0, 1),  # Horizontal
+            (1, 0),  # Vertical
+            (1, 1),  # Diagonale descendante
+            (1, -1),  # Diagonale montante
+        ]
+        each_piece = []
+        each_piece.append({"r": coords[0], "c": coords[1]})
+        for dv, dh in directions:
+            for step in [-1, 1]:
+                r, c = coords
+                while True:
+                    r += step * dv
+                    c += step * dh
+                    if (
+                        0 <= r < config.GRID_SIZE
+                        and 0 <= c < config.GRID_SIZE
+                        and self.board[r][c] == symbol
+                    ):
+                        each_piece.append({"r": r, "c": c})
+                    else:
+                        break
+        board = self.board
+        row, col = coords
+        def is_capturable(start_row, start_col, dr, dc):
+            """
+            Vérifie si une "capture" existe dans une direction donnée.
+
+            Args:
+                start_row: Ligne de départ.
+                start_col: Colonne de départ.
+                dr: Delta ligne pour parcourir dans une direction.
+                dc: Delta colonne pour parcourir dans une direction.
+
+            Returns:
+                bool: True si une capture est possible.
+            """
+            line = []
+            for step in range(-3, 4):  # Vérifie jusqu'à 3 cases avant et après
+                r = start_row + step * dr
+                c = start_col + step * dc
+                if 0 <= r < len(board) and 0 <= c < len(board[0]):
+                    line.append(board[r][c])
+                else:
+                    line.append(None)
+
+            # Chercher les motifs de capture possible
+            opponent = "1" if symbol == "2" else "2"
+            patterns = [
+                [".", symbol, symbol, opponent],
+                [opponent, symbol, symbol, "."],
+            ]
+            for pattern in patterns:
+                if any(
+                    line[i : i + len(pattern)] == pattern
+                    for i in range(len(line) - len(pattern) + 1)
+                ):
+                    return True
+
+            return False
+
+        for coord in each_piece:
+            for dr, dc in directions:
+                if is_capturable(coord["r"], coord["c"], dr, dc):
+                    return True # si une capture est possible, la ligne est cassable
+
+        # Si aucune capture n'est possible, la ligne n'est pas cassable
+        return False
 
     def checkAlignments(self, symbol, coords):
         directions = [
