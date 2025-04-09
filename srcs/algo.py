@@ -124,6 +124,8 @@ def minimax(game, depth, alpha, beta, maxim):
         return min_check, top_move
     
 # => deepcopy to be done once only ==> getAImove not in every recursive call
-    
-def getAImove(self, ):
-    return 
+# finish getAImove
+# implement getAImove in process
+
+#def getAImove(self, ):
+    #return 
