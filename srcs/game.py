@@ -2,7 +2,7 @@ import random
 import pygame
 import config
 from utile import placeButtonAtPercent, draw_text_in_rect
-from algo import get_ai_move
+# from algo import get_ai_move
 
 
 class Game:
