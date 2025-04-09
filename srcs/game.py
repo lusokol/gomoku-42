@@ -8,14 +8,47 @@ class Game:
     def __init__(self):
         self.reset()
 
+    class Time:
+        def __init__(self):
+            self.startTime = 0
+            self.seconde = 0
+            self.minute = 0
+            self.heure = 0
+            self.endSeconde = 0
+            self.endMinute = 0
+            self.endHeure = 0
+        
+        def start(self):
+            self.startTime = pygame.time.get_ticks()
+
+        def stop(self):
+            self.endSeconde = self.seconde
+            self.endMinute = self.minute
+            self.endHeure = self.heure
+
+        def updateTime(self):
+            elapsed_time = (pygame.time.get_ticks() - self.startTime) // 1000  # Temps écoulé en secondes
+            self.heure = elapsed_time // 3600
+            self.minute = (elapsed_time % 3600) // 60
+            self.seconde = elapsed_time % 60
+
+        def getTime(self):
+            self.updateTime()
+            return f"{self.heure:02}h{self.minute:02}m{self.seconde:02}s"
+        
+        def getEndTime(self):
+            return f"{self.endHeure:02}h{self.endMinute:02}m{self.endSeconde:02}s"
+
     def reset(self):
         """Réinitialise le jeu à l'état initial."""
         self.inGame = False
         self.turn = 1
-        self.time = 0
+        self.time = self.Time()
         self.start_time = 0
         self.p1_piece = 0
         self.p2_piece = 0
+        self.winner = ""
+        self.winnerBy = ""
         self.whoStart = "p1" if self.startPlayer() else "p2"
         self.whoPlay = (
             self.whoStart
@@ -30,7 +63,7 @@ class Game:
 
     def startGame(self):
         self.inGame = True
-        self.start_time = pygame.time.get_ticks()
+        self.time.start()
 
     def startPlayer(self):
         """Détermine aléatoirement qui commence."""
@@ -41,14 +74,9 @@ class Game:
         pygame.draw.rect(surface, (0, 0, 0), rect, 7)
         # text_surface = font.render("Tour de " + playerTurn, True, (0, 0, 0))
         # text_rect = text_surface.get_rect(topleft=rect.topleft + (50, 50))
-        elapsed_time = (
-            pygame.time.get_ticks() - self.start_time
-        ) // 1000  # Temps écoulé en secondes
-        heures = elapsed_time // 3600
-        minutes = (elapsed_time % 3600) // 60
-        secondes = elapsed_time % 60
+        
         text_lines = [
-            f"Temps écoulé : {heures:02}:{minutes:02}:{secondes:02}",
+            f"Temps écoulé : {self.time.getTime()}",
             "Tour " + str(self.turn) + ".",
             "Aux " + ("noirs" if (self.whoPlay == "p1") else "blancs") + " de jouer.",
             f"Les noirs ont capturé {self.p1_piece} pions.",
@@ -63,6 +91,20 @@ class Game:
         else:
             self.p2_piece += 1
 
+    def setWinner(self):
+        if self.p1_piece >= 10:
+            self.winner = "Noirs"
+            self.winnerBy = "capture"
+        elif self.p2_piece >= 10:
+            self.winner = "Blancs"
+            self.winnerBy = "capture"
+        elif self.whoPlay == "p1":
+            self.winner = "Noirs"
+            self.winnerBy = "alignement"
+        elif self.whoPlay == "p2":
+            self.winner = "Blancs"
+            self.winnerBy = "alignement"
+
     def playAt(self, coords):
         symbol = "1" if self.whoPlay == "p1" else "2"
         isCapture, pieceCaptured = self.check_if_capture(coords, symbol)
@@ -72,8 +114,9 @@ class Game:
                 for piece in pieceCaptured:
                     self.board[piece[0]][piece[1]] = "."
                     self.addCapturePiece()
-                # self.board[pieceCaptured[1][0]][pieceCaptured[1][1]] = "."
-            if self.checkAlignments(symbol, coords):
+            if self.checkAlignments(symbol, coords) or max(self.p1_piece, self.p2_piece) >= 10:
+                self.time.stop()
+                self.setWinner()
                 self.inGame = False
             else:
                 self.turn += 1

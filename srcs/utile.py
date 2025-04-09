@@ -54,51 +54,137 @@ def draw_text_in_rect(surface, rect, text_lines, font, color=(0, 0, 0), margin=2
         surface.blit(text_surface, text_position)
 
 
-def draw_end_game_screen(screen, game):
+# def draw_end_game_screen(screen, game):
+#     """
+#     Dessine un écran de fin de partie avec un rectangle transparent contenant des informations de la partie.
+
+#     Args:
+#         screen: Surface Pygame sur laquelle dessiner.
+#         game: Objet contenant les informations de la partie (turn, p1, p2, time).
+#     """
+#     # Dimensions et position du rectangle
+#     rect_width = int(config.SCREEN_WIDTH * 0.8)
+#     rect_height = int(config.SCREEN_HEIGHT * 0.8)
+#     rect_x = (config.SCREEN_WIDTH - rect_width) // 2
+#     rect_y = (config.SCREEN_HEIGHT - rect_height) // 2
+
+#     # Création d'une surface transparente
+#     transparent_surface = pygame.Surface((rect_width, rect_height), pygame.SRCALPHA)
+#     transparent_surface.fill((102, 51, 0, 200))  # Marron foncé transparent à 20%
+
+#     # Blitter le rectangle sur l'écran
+#     screen.blit(transparent_surface, (rect_x, rect_y))
+
+#     # Préparer les informations
+#     font = pygame.font.SysFont("Comic Sans MS", 40)
+#     text_color = (255, 255, 255)  # Blanc
+
+#     winner = game.p1 if game.turn % 2 == 1 else game.p2
+#     lines = [
+#         f"Gagnant : {game.winner} par {game.winnerBy}",
+#         f"Joueur 1 : {game.p1}",
+#         f"Joueur 2 : {game.p2}",
+#         f"Temps de la partie : {game.time.getEndTime()}",
+#         f"Nombre de tours : {game.turn}",
+#     ]
+
+#     # Calcul de la position de départ pour centrer verticalement le texte
+#     text_margin = 20
+#     y_start = rect_y + text_margin
+
+#     # Afficher chaque ligne de texte
+#     for idx, line in enumerate(lines):
+#         text_surface = font.render(line, True, text_color)
+#         text_rect = text_surface.get_rect(
+#             midtop=(config.SCREEN_WIDTH // 2, y_start + idx * 60)
+#         )  # 60px entre chaque ligne
+#         screen.blit(text_surface, text_rect)
+
+def draw_end_game_screen(screen, game, title_font, little_font):
     """
-    Dessine un écran de fin de partie avec un rectangle transparent contenant des informations de la partie.
+    Dessine un écran de fin de partie avec un rectangle transparent contenant des informations de la partie,
+    ainsi que deux boutons : 'Accueil' et 'Rejouer'.
 
     Args:
         screen: Surface Pygame sur laquelle dessiner.
-        game: Objet contenant les informations de la partie (turn, p1, p2, time).
+        game: Objet contenant les informations de la partie.
+        title_font: Police pour les titres.
+        little_font: Police pour les petits textes.
     """
     # Dimensions et position du rectangle
     rect_width = int(config.SCREEN_WIDTH * 0.8)
-    rect_height = int(config.SCREEN_HEIGHT * 0.8)
+    rect_height = int(config.SCREEN_HEIGHT * 0.6)
     rect_x = (config.SCREEN_WIDTH - rect_width) // 2
     rect_y = (config.SCREEN_HEIGHT - rect_height) // 2
 
-    # Création d'une surface transparente
+    # Surface transparente
     transparent_surface = pygame.Surface((rect_width, rect_height), pygame.SRCALPHA)
-    transparent_surface.fill((102, 51, 0, 200))  # Marron foncé transparent à 20%
-
-    # Blitter le rectangle sur l'écran
+    transparent_surface.fill(config.COLOR_MENU)
     screen.blit(transparent_surface, (rect_x, rect_y))
 
-    # Préparer les informations
-    font = pygame.font.SysFont("Comic Sans MS", 40)
-    text_color = (255, 255, 255)  # Blanc
+    text_color = (255, 255, 255)
+    separator_color = (255, 255, 255)
 
-    winner = game.p1 if game.turn % 2 == 1 else game.p2
     lines = [
-        f"Gagnant : {winner}",
-        f"Joueur 1 : {game.p1}",
-        f"Joueur 2 : {game.p2}",
-        f"Temps de la partie : {game.time:.2f} secondes",
+        f"Gagnant : {game.winner} par {game.winnerBy}",
+        f"Temps de la partie : {game.time.getEndTime()}",
         f"Nombre de tours : {game.turn}",
     ]
 
-    # Calcul de la position de départ pour centrer verticalement le texte
-    text_margin = 20
-    y_start = rect_y + text_margin
+    # Titre
+    y_start = rect_y + 20
+    title_surface = title_font.render("Fin de la Partie", True, text_color)
+    title_rect = title_surface.get_rect(midtop=(config.SCREEN_WIDTH // 2, y_start))
+    screen.blit(title_surface, title_rect)
+    y_start += title_rect.height + 30
 
-    # Afficher chaque ligne de texte
+    # Infos
     for idx, line in enumerate(lines):
-        text_surface = font.render(line, True, text_color)
+        text_surface = little_font.render(line, True, text_color)
         text_rect = text_surface.get_rect(
             midtop=(config.SCREEN_WIDTH // 2, y_start + idx * 60)
-        )  # 60px entre chaque ligne
+        )
         screen.blit(text_surface, text_rect)
+
+    # Ligne de séparation
+    separator_y = y_start + len(lines) * 60 + 40
+    pygame.draw.line(screen, separator_color, (rect_x + 20, separator_y), (rect_x + rect_width - 20, separator_y), 2)
+
+    # Dimensions des boutons
+    button_height = int(rect_height * 0.1)
+    button_width = int(rect_width * 0.4)
+    button_spacing = int(rect_width * 0.05)
+
+    total_buttons_width = button_width * 2 + button_spacing
+    button_start_x = rect_x + (rect_width - total_buttons_width) // 2
+    button_y = rect_y + rect_height - button_height - 20
+
+    mouse_pos = pygame.mouse.get_pos()
+
+    # Bouton "Accueil"
+    accueil_rect = pygame.Rect(button_start_x, button_y, button_width, button_height)
+    accueil_hover = accueil_rect.collidepoint(mouse_pos)
+    accueil_color = config.COLOR_BUTTON_HOVER if accueil_hover else config.COLOR_BUTTON
+    pygame.draw.rect(screen, accueil_color, accueil_rect)
+    accueil_text = little_font.render("Accueil", True, text_color)
+    accueil_text_rect = accueil_text.get_rect(center=accueil_rect.center)
+    screen.blit(accueil_text, accueil_text_rect)
+
+    # Bouton "Rejouer"
+    rejouer_rect = pygame.Rect(button_start_x + button_width + button_spacing, button_y, button_width, button_height)
+    rejouer_hover = rejouer_rect.collidepoint(mouse_pos)
+    rejouer_color = config.COLOR_BUTTON_HOVER if rejouer_hover else config.COLOR_BUTTON
+    pygame.draw.rect(screen, rejouer_color, rejouer_rect)
+    rejouer_text = little_font.render("Rejouer", True, text_color)
+    rejouer_text_rect = rejouer_text.get_rect(center=rejouer_rect.center)
+    screen.blit(rejouer_text, rejouer_text_rect)
+
+    return {
+        "accueil": accueil_hover,
+        "rejouer": rejouer_hover,
+    }
+
+
 
 
 def draw_gomoku_board(
