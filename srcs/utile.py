@@ -100,6 +100,7 @@ def draw_text_in_rect(surface, rect, text_lines, font, color=(0, 0, 0), margin=2
 #         )  # 60px entre chaque ligne
 #         screen.blit(text_surface, text_rect)
 
+
 def draw_end_game_screen(screen, game, title_font, little_font):
     """
     Dessine un écran de fin de partie avec un rectangle transparent contenant des informations de la partie,
@@ -148,7 +149,13 @@ def draw_end_game_screen(screen, game, title_font, little_font):
 
     # Ligne de séparation
     separator_y = y_start + len(lines) * 60 + 40
-    pygame.draw.line(screen, separator_color, (rect_x + 20, separator_y), (rect_x + rect_width - 20, separator_y), 2)
+    pygame.draw.line(
+        screen,
+        separator_color,
+        (rect_x + 20, separator_y),
+        (rect_x + rect_width - 20, separator_y),
+        2,
+    )
 
     # Dimensions des boutons
     button_height = int(rect_height * 0.1)
@@ -171,7 +178,12 @@ def draw_end_game_screen(screen, game, title_font, little_font):
     screen.blit(accueil_text, accueil_text_rect)
 
     # Bouton "Rejouer"
-    rejouer_rect = pygame.Rect(button_start_x + button_width + button_spacing, button_y, button_width, button_height)
+    rejouer_rect = pygame.Rect(
+        button_start_x + button_width + button_spacing,
+        button_y,
+        button_width,
+        button_height,
+    )
     rejouer_hover = rejouer_rect.collidepoint(mouse_pos)
     rejouer_color = config.COLOR_BUTTON_HOVER if rejouer_hover else config.COLOR_BUTTON
     pygame.draw.rect(screen, rejouer_color, rejouer_rect)
@@ -183,8 +195,6 @@ def draw_end_game_screen(screen, game, title_font, little_font):
         "accueil": accueil_hover,
         "rejouer": rejouer_hover,
     }
-
-
 
 
 def draw_gomoku_board(

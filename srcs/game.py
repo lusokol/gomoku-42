@@ -17,7 +17,7 @@ class Game:
             self.endSeconde = 0
             self.endMinute = 0
             self.endHeure = 0
-        
+
         def start(self):
             self.startTime = pygame.time.get_ticks()
 
@@ -27,7 +27,9 @@ class Game:
             self.endHeure = self.heure
 
         def updateTime(self):
-            elapsed_time = (pygame.time.get_ticks() - self.startTime) // 1000  # Temps écoulé en secondes
+            elapsed_time = (
+                pygame.time.get_ticks() - self.startTime
+            ) // 1000  # Temps écoulé en secondes
             self.heure = elapsed_time // 3600
             self.minute = (elapsed_time % 3600) // 60
             self.seconde = elapsed_time % 60
@@ -35,7 +37,7 @@ class Game:
         def getTime(self):
             self.updateTime()
             return f"{self.heure:02}h{self.minute:02}m{self.seconde:02}s"
-        
+
         def getEndTime(self):
             return f"{self.endHeure:02}h{self.endMinute:02}m{self.endSeconde:02}s"
 
@@ -75,7 +77,7 @@ class Game:
         pygame.draw.rect(surface, (0, 0, 0), rect, 7)
         # text_surface = font.render("Tour de " + playerTurn, True, (0, 0, 0))
         # text_rect = text_surface.get_rect(topleft=rect.topleft + (50, 50))
-        
+
         text_lines = [
             f"Temps écoulé : {self.time.getTime()}",
             "Tour " + str(self.turn) + ".",
@@ -94,7 +96,7 @@ class Game:
 
     def setWinner(self, winner=None):
         if winner is None:
-            self.winner = "Noirs" if winner is "p1" else "Blancs"
+            self.winner = "Noirs" if winner == "p1" else "Blancs"
         elif self.p1_piece >= 10:
             self.winner = "Noirs"
             self.winnerBy = "capture"
@@ -160,8 +162,10 @@ class Game:
 
             # Si une victoire est en attente, on vérifie maintenant si elle est toujours valide
             if self.pending_win:
-                still_winning = self.checkAlignments(self.getSymbolFromPlayer(self.pending_win["player"]),
-                                                    self.pending_win["coords"])
+                still_winning = self.checkAlignments(
+                    self.getSymbolFromPlayer(self.pending_win["player"]),
+                    self.pending_win["coords"],
+                )
                 if still_winning:
                     current_align = self.checkAlignments(symbol, coords)
                     if current_align and self.pending_win["player"] != self.whoPlay:
@@ -181,7 +185,7 @@ class Game:
 
             # Vérifie s'il y a une nouvelle ligne gagnante
             if self.checkAlignments(symbol, coords):
-                self.pending_win = { "player": self.whoPlay, "coords": coords }
+                self.pending_win = {"player": self.whoPlay, "coords": coords}
                 self.nextTurn()
             elif max(self.p1_piece, self.p2_piece) >= 10:
                 self.time.stop()
@@ -191,7 +195,6 @@ class Game:
                 self.nextTurn()
         else:
             print("Coup interdit !")
-
 
     def check_if_capture(self, coords, symbol):
         row, col = coords

@@ -58,6 +58,7 @@ def getMenu(title_font, pos, logo, button_texts, menu_disable):
 
     return button_surface, mouseOn
 
+
 def main():
     # === INIT ===
     pygame.init()
@@ -76,7 +77,7 @@ def main():
         return pygame.transform.scale(logo_original, (newW, newH))
 
     def update_assets_after_resize():
-        nonlocal screen, title_font, little_font, logo
+        nonlocal logo
         logo = resize_logo()
 
     # === CHARGEMENT RESSOURCES ===
@@ -119,7 +120,9 @@ def main():
             menu_actif = menu_ingame
             game.startGame()
         elif mouseOn == "PLEIN ECRAN":
-            screen, title_font, little_font = updateScreenSize(infoObject.current_w, infoObject.current_h, True)
+            screen, title_font, little_font = updateScreenSize(
+                infoObject.current_w, infoObject.current_h, True
+            )
             update_assets_after_resize()
         elif mouseOn == "FENÊTRÉ":
             menu_actif = menu_fenetre
@@ -154,12 +157,20 @@ def main():
 
         mouseOn = "none"
         if menu_actif != "none":
-            menu_surface, mouseOn = getMenu(title_font, pos, logo, menu_actif, (menu_actif == menu_ingame and not game.inGame))
+            menu_surface, mouseOn = getMenu(
+                title_font,
+                pos,
+                logo,
+                menu_actif,
+                (menu_actif == menu_ingame and not game.inGame),
+            )
 
         menu_disable = False
         for event in pygame.event.get():
             if event.type == pygame.MOUSEBUTTONDOWN:
-                if pos[0] > config.SCREEN_WIDTH // 3 or (menu_actif == menu_ingame and not game.inGame):
+                if pos[0] > config.SCREEN_WIDTH // 3 or (
+                    menu_actif == menu_ingame and not game.inGame
+                ):
                     menu_disable = True
                 else:
                     handle_click(mouseOn)
@@ -174,7 +185,6 @@ def main():
         pygame.display.flip()
 
     pygame.quit()
-
 
 
 if __name__ == "__main__":
