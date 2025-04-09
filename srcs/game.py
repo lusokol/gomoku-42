@@ -60,6 +60,7 @@ class Game:
         self.board = [
             ["." for _ in range(config.GRID_SIZE)] for _ in range(config.GRID_SIZE)
         ]
+        self.pending_win = None
 
     def startGame(self):
         self.inGame = True
@@ -91,8 +92,10 @@ class Game:
         else:
             self.p2_piece += 1
 
-    def setWinner(self):
-        if self.p1_piece >= 10:
+    def setWinner(self, winner=None):
+        if winner is None:
+            self.winner = "Noirs" if winner is "p1" else "Blancs"
+        elif self.p1_piece >= 10:
             self.winner = "Noirs"
             self.winnerBy = "capture"
         elif self.p2_piece >= 10:
@@ -105,28 +108,90 @@ class Game:
             self.winner = "Blancs"
             self.winnerBy = "alignement"
 
+    def setDraw(self):
+        self.winner = "draw"
+        print("Égalité !")
+
+    # def playAt(self, coords):
+    #     symbol = "1" if self.whoPlay == "p1" else "2"
+    #     isCapture, pieceCaptured = self.check_if_capture(coords, symbol)
+    #     if isCapture or self.checkIfAutorized(coords, symbol):
+    #         self.board[coords[0]][coords[1]] = symbol
+    #         if isCapture:
+    #             for piece in pieceCaptured:
+    #                 self.board[piece[0]][piece[1]] = "."
+    #                 self.addCapturePiece()
+    #         if self.checkAlignments(symbol, coords) or max(self.p1_piece, self.p2_piece) >= 10:
+    #             self.time.stop()
+    #             self.setWinner()
+    #             self.inGame = False
+    #         else:
+    #             self.turn += 1
+    #             self.whoPlay = (
+    #                 self.whoStart
+    #                 if (self.turn % 2)
+    #                 else "p1" if (self.whoStart == "p2") else "p2"
+    #             )
+    #     else:
+    #         print("Coup interdit !")
+
+    def getSymbolFromPlayer(self, player):
+        return "1" if player == "p1" else "2"
+
+    def nextTurn(self):
+        self.turn += 1
+        self.whoPlay = (
+            self.whoStart
+            if (self.turn % 2)
+            else "p1" if (self.whoStart == "p2") else "p2"
+        )
+
     def playAt(self, coords):
         symbol = "1" if self.whoPlay == "p1" else "2"
         isCapture, pieceCaptured = self.check_if_capture(coords, symbol)
+
         if isCapture or self.checkIfAutorized(coords, symbol):
             self.board[coords[0]][coords[1]] = symbol
+
             if isCapture:
                 for piece in pieceCaptured:
                     self.board[piece[0]][piece[1]] = "."
                     self.addCapturePiece()
-            if self.checkAlignments(symbol, coords) or max(self.p1_piece, self.p2_piece) >= 10:
+
+            # Si une victoire est en attente, on vérifie maintenant si elle est toujours valide
+            if self.pending_win:
+                still_winning = self.checkAlignments(self.getSymbolFromPlayer(self.pending_win["player"]),
+                                                    self.pending_win["coords"])
+                if still_winning:
+                    current_align = self.checkAlignments(symbol, coords)
+                    if current_align and self.pending_win["player"] != self.whoPlay:
+                        # les deux joueurs font un alignement en même temps -> égalité
+                        self.time.stop()
+                        self.setDraw()
+                    else:
+                        # l'adversaire n'a pas cassé la ligne → victoire du joueur initial
+                        self.time.stop()
+                        self.setWinner(self.pending_win["player"])
+                    self.inGame = False
+                    self.pending_win = None
+                    return
+                else:
+                    # ligne cassée → la partie continue
+                    self.pending_win = None
+
+            # Vérifie s'il y a une nouvelle ligne gagnante
+            if self.checkAlignments(symbol, coords):
+                self.pending_win = { "player": self.whoPlay, "coords": coords }
+                self.nextTurn()
+            elif max(self.p1_piece, self.p2_piece) >= 10:
                 self.time.stop()
                 self.setWinner()
                 self.inGame = False
             else:
-                self.turn += 1
-                self.whoPlay = (
-                    self.whoStart
-                    if (self.turn % 2)
-                    else "p1" if (self.whoStart == "p2") else "p2"
-                )
+                self.nextTurn()
         else:
             print("Coup interdit !")
+
 
     def check_if_capture(self, coords, symbol):
         row, col = coords
