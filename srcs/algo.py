@@ -144,9 +144,8 @@ def minimax(game, depth, alpha, beta, maxim):
 
         return min_check, top_move
 
-
-# implement getAImove in process
 def getAImove(self, game, depth):
+    depth = game.getDifficulty(depth)
     game_copy = deepcopy(game)
     _, move = minimax(
         game_copy, depth, alpha=float("-inf"), beta=float("inf"), maxim=True

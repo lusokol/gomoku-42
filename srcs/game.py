@@ -2,9 +2,7 @@ import random
 import pygame
 import config
 from utile import placeButtonAtPercent, draw_text_in_rect
-
-# from algo import get_ai_move
-
+from algo import getAImove
 
 class Game:
     def __init__(self):
@@ -19,6 +17,9 @@ class Game:
             self.endSeconde = 0
             self.endMinute = 0
             self.endHeure = 0
+            self.isAIgame = False
+            self.AIdifficulty = "FACILE"
+            
 
         def start(self):
             self.startTime = pygame.time.get_ticks()
@@ -71,6 +72,22 @@ class Game:
     def startGame(self):
         self.inGame = True
         self.time.start()
+    
+    def startAIgame(self):
+        self.reset()
+        self.inGame = True
+        self.time.start()
+        
+    def setAIdifficulty(self, difficulty):
+        self.AIdifficulty = difficulty
+        self.isAIgame = True
+        
+    def getDifficulty(self):
+        return {
+        "FACILE": 1,
+        "MOYEN": 3,
+        "IMPOSSIBLE": 5,
+    }.get(self.AIdifficulty, 1)
 
     def startPlayer(self):
         """Détermine aléatoirement qui commence."""
@@ -181,6 +198,11 @@ class Game:
                 self.inGame = False
             else:
                 self.nextTurn()
+                
+            if self.whoPlay == "ai" and self.inGame:
+                ai_move = getAImove(self.board)
+                if ai_move:
+                    self.playAt(ai_move)
         else:
             print("Coup interdit !")
 
