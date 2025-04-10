@@ -1,5 +1,6 @@
 import pygame
 from game import Game
+from algo import getAImove
 import config
 from utile import (
     placeButtonAtPercent,

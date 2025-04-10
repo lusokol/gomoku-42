@@ -98,34 +98,42 @@ def minimax(game, depth, alpha, beta, maxim):
     # entering the Maximizing player's turn
     if maxim:
         max_check = float('-inf') #setting the max_check score to a minimum for optimal use
-        for move in game.getPossibleMoves(): 
-            game_copy = deepcopy(game) #deepcopy of game so we don't destroy our beautiful game
-            game_copy.playAt(move) #playAt on the deepcopy 
-            eval, _ = minimax(game_copy, depth - 1, alpha, beta, False)
+        for move in game.getPossibleMoves():
+            x, y = move
+            game.makeMove(x, y, game.whoPlay)
+            eval, _ = minimax(game, depth - 1, alpha, beta, False)
+            game.undoMove(x, y)
+            
             if eval > max_check:
                 max_check = eval
                 top_move = move
             alpha = max(alpha, eval)
+            
             if beta <= alpha:
                 break
+            
         return max_check, top_move
+    
     else: #opposite of maxim player except when we cut to the chase by using alpha beta pruning
         min_check = float('inf')
         for move in game.getPossibleMoves():
-            game_copy = deepcopy(game)
-            game_copy.playAt(move)
-            eval, _ = minimax(game_copy, depth - 1, alpha, beta, True)
+            x, y = move
+            game.makeMove(x, y, game.whoPlay)
+            eval, _ = minimax(game, depth - 1, alpha, beta, True)
+            game.undoMove(x, y)
+            
             if eval < min_check:
                 min_check = eval
                 top_move = move
             beta = min(beta, eval)
+            
             if beta <= alpha:
                 break
+            
         return min_check, top_move
     
-# => deepcopy to be done once only ==> getAImove not in every recursive call
-# finish getAImove
 # implement getAImove in process
-
-#def getAImove(self, ):
-    #return 
+def getAImove(self, game, depth):
+    game_copy = deepcopy(game)
+    _, move = minimax(game_copy, depth, alpha=float('-inf'), beta=float('inf'), maxim=True) # deepcopy only once good for opti Time Complexity
+    return move
