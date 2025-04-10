@@ -89,50 +89,60 @@ def main():
     aspect_ratio = logo_original.get_height() / logo_original.get_width()
     logo = resize_logo()
 
-    # === MENUS ===
-    menu_accueil = ["JOUER", "OPTIONS", "QUITTER"]
-    menu_jouer = ["SOLO", "PARTIE LOCAL", "RETOUR"]
-    menu_option = ["PLEIN ECRAN", "FENÊTRÉ", "RETOUR"]
-    menu_fenetre = ["1280X720", "1600X900", "1920X1080", "RETOUR"]
-    menu_ingame = ["RETOUR"]
+    menus = {
+        "accueil": ["JOUER", "OPTIONS", "QUITTER"],
+        "jouer": ["SOLO CONTRE L'IA", "PARTIE LOCAL", "RETOUR"],
+        "ia": ["FACILE", "MOYEN", "IMPOSSIBLE", "RETOUR"],
+        "option": ["PLEIN ECRAN", "FENÊTRÉ", "RETOUR"],
+        "fenetre": ["1280X720", "1600X900", "1920X1080", "RETOUR"],
+        "ingame": ["RETOUR"]
+    }
 
-    menu_actif = menu_accueil
+    retour_map = {
+        "fenetre": "option",
+        "ia": "jouer",
+        "jouer": "accueil",
+        "option": "accueil",
+        "ingame": "accueil"
+    }
+
+
+    menu_actif_id = "accueil"
+    menu_actif = menus[menu_actif_id]
     run = True
     game = Game()
 
-    def handle_click(mouseOn):
-        nonlocal run, screen, title_font, little_font, menu_actif
-        if menu_actif == menu_ingame and not game.inGame:
-            if mouseOn == "accueil":
-                game.reset()
-                menu_actif = menu_accueil
-            elif mouseOn == "rejouer":
-                game.reset()
-                game.startGame()
-                menu_actif = menu_ingame
-        elif mouseOn == "JOUER":
-            menu_actif = menu_jouer
+    def changeMenu(new_menu_id):
+        nonlocal menu_actif_id, menu_actif
+        menu_actif_id = new_menu_id
+        menu_actif = menus[menu_actif_id]
+
+    def handle_menu_click(mouseOn):
+        nonlocal run, screen, title_font, little_font
+        if mouseOn == "JOUER":
+            changeMenu("jouer")
         elif mouseOn == "OPTIONS":
-            menu_actif = menu_option
+            changeMenu("option")
         elif mouseOn == "QUITTER":
             run = False
+        elif mouseOn == "SOLO CONTRE L'IA":
+            changeMenu("ia")
         elif mouseOn == "PARTIE LOCAL":
-            menu_actif = menu_ingame
+            changeMenu("ingame")
             game.startGame()
         elif mouseOn == "PLEIN ECRAN":
-            screen, title_font, little_font = updateScreenSize(
-                infoObject.current_w, infoObject.current_h, True
-            )
+            screen, title_font, little_font = updateScreenSize(infoObject.current_w, infoObject.current_h, True)
             update_assets_after_resize()
         elif mouseOn == "FENÊTRÉ":
-            menu_actif = menu_fenetre
+            changeMenu("fenetre")
         elif mouseOn in ["1280X720", "1600X900", "1920X1080"]:
             w, h = map(int, mouseOn.split("X"))
             screen, title_font, little_font = updateScreenSize(w, h, False)
             update_assets_after_resize()
         elif mouseOn == "RETOUR":
-            menu_actif = menu_option if menu_actif == menu_fenetre else menu_accueil
+            changeMenu(retour_map.get(menu_actif_id, "accueil"))
             game.reset()
+
 
     def draw_game_screen():
         game_surface = pygame.Surface(
@@ -145,9 +155,9 @@ def main():
         if not game.inGame:
             endGame_rect = draw_end_game_screen(screen, game, title_font, little_font)
             if endGame_rect["accueil"] and menu_disable:
-                handle_click("accueil")
+                handle_menu_click("accueil")
             elif endGame_rect["rejouer"] and menu_disable:
-                handle_click("rejouer")
+                handle_menu_click("rejouer")
 
     # === BOUCLE PRINCIPALE ===
     while run:
@@ -162,22 +172,22 @@ def main():
                 pos,
                 logo,
                 menu_actif,
-                (menu_actif == menu_ingame and not game.inGame),
+                (menu_actif == menus["ingame"] and not game.inGame),
             )
 
         menu_disable = False
         for event in pygame.event.get():
             if event.type == pygame.MOUSEBUTTONDOWN:
                 if pos[0] > config.SCREEN_WIDTH // 3 or (
-                    menu_actif == menu_ingame and not game.inGame
+                    menu_actif == menus["ingame"] and not game.inGame
                 ):
                     menu_disable = True
                 else:
-                    handle_click(mouseOn)
+                    handle_menu_click(mouseOn)
             if event.type == pygame.QUIT:
                 run = False
 
-        if menu_actif == menu_ingame:
+        if menu_actif == menus["ingame"]:
             draw_game_screen()
         else:
             screen.blit(menu_surface, (0, 0))
