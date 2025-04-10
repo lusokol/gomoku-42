@@ -68,7 +68,7 @@ class Game:
             ["." for _ in range(config.GRID_SIZE)] for _ in range(config.GRID_SIZE)
         ]
         self.pending_win = None
-
+    
     def startGame(self):
         self.inGame = True
         self.time.start()
@@ -83,7 +83,7 @@ class Game:
         
     def getDifficulty(self):
         return {
-        "FACILE": 1,
+        "FACILE": 2,
         "MOYEN": 3,
         "IMPOSSIBLE": 5,
     }.get(self.AIdifficulty, 1)
@@ -113,31 +113,45 @@ class Game:
             if self.board[x][y] == "."
         ]
 
-
     def checkBoard(self, player):
-        """Simple heuristic checker for our board to see which placement could be more beneficial"""
         opponent = "p1" if player == "p2" else "p2"
         symbol = self.getSymbolFromPlayer(player)
         opp_symbol = self.getSymbolFromPlayer(opponent)
 
         score = 0
-
-        score += self.p1_piece * 50 if player == "p1" else self.p2_piece * 50
-        score -= self.p2_piece * 50 if player == "p1" else self.p1_piece * 50
-
+        center_weight = 5
+        center_x, center_y = len(self.board[0]) // 2, len(self.board) // 2
+        
+        # Prioritize the center
         for y in range(len(self.board)):
             for x in range(len(self.board[0])):
                 if self.board[y][x] == symbol:
-                    align_len = self.checkAlignments(symbol, (y, x))
-                    if align_len:
-                        score += align_len * 100  # Congrats that's a good move :)
+                    dist = abs(center_x - x) + abs(center_y - y)
+                    score += (center_weight * max(0, 10 - dist))
                 elif self.board[y][x] == opp_symbol:
-                    align_len = self.checkAlignments(opp_symbol, (y, x))
-                    if align_len:
-                        score -= (
-                            align_len * 80
-                        )  # This is not a good move so we deduct score from the play
+                    dist = abs(center_x - x) + abs(center_y - y)
+                    score -= (center_weight * max(0, 10 - dist))
 
+        # Check if the current player has winning alignments
+        for y in range(len(self.board)):
+            for x in range(len(self.board[0])):
+                if self.board[y][x] == symbol:
+                    align_len, open_spots = self.checkLines(symbol, (y, x))  # Unpack the tuple
+                    if align_len:
+                        score += align_len * 100  # More points for bigger alignments
+                        if align_len >= 4:  # If the player can win next move
+                            score += 500
+                    score += open_spots * 10  # Add points for open spots in the alignment
+
+                elif self.board[y][x] == opp_symbol:
+                    align_len, open_spots = self.checkLines(opp_symbol, (y, x))  # Unpack the tuple
+                    if align_len:
+                        score -= align_len * 80  # Deduct points for the opponent's alignments
+                        if align_len >= 4:  # If the opponent can win next move
+                            score -= 500
+                    score -= open_spots * 10  # Deduct points for open spots in the opponent's alignment
+
+        # Special cases if a win is about to happen
         if self.pending_win and self.pending_win["player"] == player:
             score += 5000
         elif self.pending_win and self.pending_win["player"] == opponent:
@@ -188,13 +202,10 @@ class Game:
         # If given depth is Zero we return the current game state and None as nothing will be evaluated
         if depth == 0 or game.isDone():
             return game.checkBoard(game.whoPlay), None
-        # @top_move is declared to store the highest score guarantee
+
         top_move = None
-        # entering the Maximizing player's turn
         if maxim:
-            max_check = float(
-                "-inf"
-            )  # setting the max_check score to a minimum for optimal use
+            max_check = float("-inf")
             for move in game.getPossibleMoves():
                 x, y = move
                 game.makeMove(x, y, game.whoPlay)
@@ -211,7 +222,7 @@ class Game:
 
             return max_check, top_move
 
-        else:  # opposite of maxim player except when we cut to the chase by using alpha beta pruning
+        else:
             min_check = float("inf")
             for move in game.getPossibleMoves():
                 x, y = move
@@ -229,12 +240,14 @@ class Game:
 
             return min_check, top_move
         
-    def getAImove(self, game, depth):
-        depth = game.getDifficulty()
-        game_copy = deepcopy(game)
-        _, move = self.minimax(
-            game_copy, depth, alpha=float("-inf"), beta=float("inf"), maxim=True
-        )  # deepcopy only once good for opti Time Complexity
+    def getAImove(self):
+        depth = self.getDifficulty()
+        game_copy = deepcopy(self)
+        _, move = self.minimax(game_copy, depth, alpha=float("-inf"), beta=float("inf"), maxim=True)
+
+        #possible_moves = game_copy.getPossibleMoves()
+        #move = random.choice(possible_moves) if move == (0, 0) else move
+
         return move
 
     def startPlayer(self):
@@ -350,7 +363,7 @@ class Game:
                 
             if self.whoPlay == self.IAplayer and self.inGame:
                 depth = self.getDifficulty()
-                ai_move = self.getAImove(self, depth)
+                ai_move = self.getAImove()
                 if IAmoved is not True:
                     self.playAt(ai_move, True)
                 else:
@@ -474,6 +487,41 @@ class Game:
 
         # Si aucune capture n'est possible, la ligne n'est pas cassable
         return False
+    
+    def checkLines(self, symbol, start_pos):
+        """Check all directions (horizontal, vertical, and both diagonals) for the longest alignment of the given symbol."""
+        directions = [
+            (1, 0),  # Horizontal
+            (0, 1),  # Vertical
+            (1, 1),  # Diagonal down-right
+            (1, -1)  # Diagonal up-right
+        ]
+
+        max_len = 0
+        open_spots = 0
+
+        for dx, dy in directions:
+            length = 1  # Start with the current position
+            open_count = 0  # Track open spots
+            # Check in both directions
+            for direction in [-1, 1]:
+                x, y = start_pos
+                while True:
+                    x += direction * dx
+                    y += direction * dy
+                    if 0 <= x < len(self.board[0]) and 0 <= y < len(self.board):
+                        if self.board[y][x] == symbol:
+                            length += 1
+                        elif self.board[y][x] == ".":
+                            open_count += 1
+                        else:
+                            break
+                    else:
+                        break
+            max_len = max(max_len, length)
+            open_spots += open_count
+
+        return max_len, open_spots
 
     def checkAlignments(self, symbol, coords):
         directions = [
