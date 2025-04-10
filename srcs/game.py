@@ -17,9 +17,6 @@ class Game:
             self.endSeconde = 0
             self.endMinute = 0
             self.endHeure = 0
-            self.isAIgame = False
-            self.AIdifficulty = "FACILE"
-            
 
         def start(self):
             self.startTime = pygame.time.get_ticks()
@@ -54,7 +51,10 @@ class Game:
         self.p2_piece = 0
         self.winner = ""
         self.winnerBy = ""
+        self.isAIgame = False
+        self.AIdifficulty = "FACILE"
         self.whoStart = "p1" if self.startPlayer() else "p2"
+        self.IAplayer =  "p1" if self.whoStart == "p2" else "p2"
         self.whoPlay = (
             self.whoStart
             if (self.turn % 2)
@@ -74,17 +74,9 @@ class Game:
         self.time.start()
     
     def startAIgame(self):
-        self.reset()
         self.inGame = True
         self.time.start()
-        
-        if self.startPlayer():
-            self.whoStart = "p1"
-            self.whoPlay = "p1"
-        else:
-            self.whoStart = "p2"
-            self.whoPlay = "ai"
-        self.isAIgame = True        
+        self.isAIgame = True       
         
     def setAIdifficulty(self, difficulty):
         self.AIdifficulty = difficulty
@@ -296,22 +288,16 @@ class Game:
 
     def nextTurn(self):
         self.turn += 1
-        if self.isAIgame:
-            if self.whoPlay == "ai":
-                self.whoPlay = "p1" if self.whoStart == "p2" else "p2"
-            else:
-                self.whoPlay = "ai"
-                
-        else:
-            self.whoPlay = (
-                self.whoStart
-                if (self.turn % 2)
-                else "p1"
-                if (self.whoStart == "p2")
-                else "p2"
-            )
 
-    def playAt(self, coords):
+        self.whoPlay = (
+            self.whoStart
+            if (self.turn % 2)
+            else "p1"
+            if (self.whoStart == "p2")
+            else "p2"
+        )
+
+    def playAt(self, coords, IAmoved=False):
         symbol = "1" if self.whoPlay == "p1" else "2"
         isCapture, pieceCaptured = self.check_if_capture(coords, symbol)
 
@@ -362,11 +348,11 @@ class Game:
             else:
                 self.nextTurn()
                 
-            if self.whoPlay == "ai" and self.inGame:
+            if self.whoPlay == self.IAplayer and self.inGame:
                 depth = self.getDifficulty()
                 ai_move = self.getAImove(self, depth)
-                if ai_move:
-                    self.playAt(ai_move)
+                if IAmoved is not True:
+                    self.playAt(ai_move, True)
                 else:
                     self.nextTurn()
         else:
