@@ -1,6 +1,6 @@
 import pygame
 from game import Game
-from algo import getAImove
+# from algo import getAImove
 import config
 from utile import (
     placeButtonAtPercent,
@@ -96,7 +96,7 @@ def main():
         "ia": ["FACILE", "MOYEN", "IMPOSSIBLE", "RETOUR"],
         "option": ["PLEIN ECRAN", "FENÊTRÉ", "RETOUR"],
         "fenetre": ["1280X720", "1600X900", "1920X1080", "RETOUR"],
-        "ingame": ["RETOUR"]
+        "ingame": ["RETOUR"],
     }
 
     retour_map = {
@@ -104,9 +104,8 @@ def main():
         "ia": "jouer",
         "jouer": "accueil",
         "option": "accueil",
-        "ingame": "accueil"
+        "ingame": "accueil",
     }
-
 
     menu_actif_id = "accueil"
     menu_actif = menus[menu_actif_id]
@@ -132,7 +131,9 @@ def main():
             changeMenu("ingame")
             game.startGame()
         elif mouseOn == "PLEIN ECRAN":
-            screen, title_font, little_font = updateScreenSize(infoObject.current_w, infoObject.current_h, True)
+            screen, title_font, little_font = updateScreenSize(
+                infoObject.current_w, infoObject.current_h, True
+            )
             update_assets_after_resize()
         elif mouseOn == "FENÊTRÉ":
             changeMenu("fenetre")
@@ -143,7 +144,6 @@ def main():
         elif mouseOn == "RETOUR":
             changeMenu(retour_map.get(menu_actif_id, "accueil"))
             game.reset()
-
 
     def draw_game_screen():
         game_surface = pygame.Surface(

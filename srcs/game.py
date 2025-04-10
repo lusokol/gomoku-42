@@ -2,6 +2,7 @@ import random
 import pygame
 import config
 from utile import placeButtonAtPercent, draw_text_in_rect
+
 # from algo import get_ai_move
 
 
@@ -56,7 +57,9 @@ class Game:
         self.whoPlay = (
             self.whoStart
             if (self.turn % 2)
-            else "p1" if (self.whoStart == "p2") else "p2"
+            else "p1"
+            if (self.whoStart == "p2")
+            else "p2"
         )
         self.p1 = "Joueur 1"
         self.p2 = "Joueur 2"
@@ -123,7 +126,9 @@ class Game:
         self.whoPlay = (
             self.whoStart
             if (self.turn % 2)
-            else "p1" if (self.whoStart == "p2") else "p2"
+            else "p1"
+            if (self.whoStart == "p2")
+            else "p2"
         )
 
     def playAt(self, coords):
@@ -250,6 +255,7 @@ class Game:
                         break
         board = self.board
         row, col = coords
+
         def is_capturable(start_row, start_col, dr, dc):
             """
             Vérifie si une "capture" existe dans une direction donnée.
@@ -290,7 +296,7 @@ class Game:
         for coord in each_piece:
             for dr, dc in directions:
                 if is_capturable(coord["r"], coord["c"], dr, dc):
-                    return True # si une capture est possible, la ligne est cassable
+                    return True  # si une capture est possible, la ligne est cassable
 
         # Si aucune capture n'est possible, la ligne n'est pas cassable
         return False
@@ -405,4 +411,3 @@ class Game:
 
         # Si aucun double free-three n'est détecté, le mouvement est autorisé
         return True
-    
