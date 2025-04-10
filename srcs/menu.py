@@ -1,6 +1,6 @@
 import pygame
 from game import Game
-# from algo import getAImove
+from algo import getAImove
 import config
 from utile import (
     placeButtonAtPercent,
@@ -128,6 +128,10 @@ def main():
             run = False
         elif mouseOn == "SOLO CONTRE L'IA":
             changeMenu("ia")
+        elif mouseOn in ["FACILE", "MOYEN", "IMPOSSIBLE"]:
+            game.setAIdifficulty(mouseOn)
+            changeMenu("ingame")
+            game.startAIgame()
         elif mouseOn == "PARTIE LOCAL":
             changeMenu("ingame")
             game.startGame()
