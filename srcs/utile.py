@@ -128,7 +128,8 @@ def draw_end_game_screen(screen, game, title_font, little_font):
     separator_color = (255, 255, 255)
 
     lines = [
-        f"Gagnant : {game.winner} par {game.winnerBy}",
+        f"Victoire du {game.winner} par {game.winnerBy} !" if game.winner != "draw" else
+        f"Egalité !",
         f"Temps de la partie : {game.time.getEndTime()}",
         f"Nombre de tours : {game.turn}",
     ]
@@ -174,7 +175,7 @@ def draw_end_game_screen(screen, game, title_font, little_font):
     accueil_hover = accueil_rect.collidepoint(mouse_pos)
     accueil_color = config.COLOR_BUTTON_HOVER if accueil_hover else config.COLOR_BUTTON
     pygame.draw.rect(screen, accueil_color, accueil_rect)
-    accueil_text = little_font.render("Accueil", True, text_color)
+    accueil_text = little_font.render("ACCUEIL", True, text_color)
     accueil_text_rect = accueil_text.get_rect(center=accueil_rect.center)
     screen.blit(accueil_text, accueil_text_rect)
 
@@ -188,7 +189,7 @@ def draw_end_game_screen(screen, game, title_font, little_font):
     rejouer_hover = rejouer_rect.collidepoint(mouse_pos)
     rejouer_color = config.COLOR_BUTTON_HOVER if rejouer_hover else config.COLOR_BUTTON
     pygame.draw.rect(screen, rejouer_color, rejouer_rect)
-    rejouer_text = little_font.render("Rejouer", True, text_color)
+    rejouer_text = little_font.render("REJOUER", True, text_color)
     rejouer_text_rect = rejouer_text.get_rect(center=rejouer_rect.center)
     screen.blit(rejouer_text, rejouer_text_rect)
 

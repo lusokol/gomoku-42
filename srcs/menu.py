@@ -146,7 +146,7 @@ def main():
             changeMenu(retour_map.get(menu_actif_id, "accueil"))
             game.reset()
 
-    def draw_game_screen():
+    def draw_game_screen(menu_disable):
         game_surface = pygame.Surface(
             (config.SCREEN_WIDTH // 3 * 2, config.SCREEN_HEIGHT), pygame.SRCALPHA
         )
@@ -157,9 +157,11 @@ def main():
         if not game.inGame:
             endGame_rect = draw_end_game_screen(screen, game, title_font, little_font)
             if endGame_rect["accueil"] and menu_disable:
-                handle_menu_click("accueil")
+                handle_menu_click("RETOUR")
             elif endGame_rect["rejouer"] and menu_disable:
-                handle_menu_click("rejouer")
+                # A GERER ================================================
+                handle_menu_click("REJOUER")
+                # A GERER ================================================
 
     # === BOUCLE PRINCIPALE ===
     while run:
@@ -190,7 +192,7 @@ def main():
                 run = False
 
         if menu_actif == menus["ingame"]:
-            draw_game_screen()
+            draw_game_screen(menu_disable)
         else:
             screen.blit(menu_surface, (0, 0))
         draw_notification(screen, little_font)
