@@ -1,5 +1,6 @@
 import config
 import pygame
+import time
 
 
 def placeButtonAtPercent(percent, size=10):
@@ -360,3 +361,33 @@ def draw_gomoku_board(
                                 rect.centery - piece_size,
                             ),
                         )
+
+
+def show_notification(msg, duration=2):
+    config.NOTIFICATION["message"] = msg
+    config.NOTIFICATION["start_time"] = time.time()
+    config.NOTIFICATION["duration"] = duration
+
+
+def draw_notification(screen, font):
+    if config.NOTIFICATION["message"] is None:
+        return
+
+    elapsed = time.time() - config.NOTIFICATION["start_time"]
+    if elapsed > config.NOTIFICATION["duration"]:
+        config.NOTIFICATION["message"] = None
+        return
+
+    notif_surf = pygame.Surface((400, 60), pygame.SRCALPHA)
+    remaning_time = config.NOTIFICATION["duration"] - elapsed
+    alpha = 180 if remaning_time > 1 else 180 * remaning_time
+    popup_color = config.COLOR_BUTTON + (alpha,)
+    notif_surf.fill(popup_color)  # Fond noir semi-transparent
+
+    text_surf = font.render(config.NOTIFICATION["message"], True, (255, 255, 255))
+    text_rect = text_surf.get_rect(center=(200, 30))
+    notif_surf.blit(text_surf, text_rect)
+
+    x = config.SCREEN_WIDTH - notif_surf.get_width() - 20
+    y = config.SCREEN_HEIGHT - notif_surf.get_height() - 20
+    screen.blit(notif_surf, (x, y))

@@ -1,7 +1,7 @@
 import random
 import pygame
 import config
-from utile import placeButtonAtPercent, draw_text_in_rect
+from utile import placeButtonAtPercent, draw_text_in_rect, show_notification
 from algo import getAImove
 
 class Game:
@@ -204,7 +204,7 @@ class Game:
                 if ai_move:
                     self.playAt(ai_move)
         else:
-            print("Coup interdit !")
+            show_notification("Double free three interdit !")
 
     def check_if_capture(self, coords, symbol):
         row, col = coords

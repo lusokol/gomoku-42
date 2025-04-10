@@ -7,6 +7,7 @@ from utile import (
     draw_text_centered,
     draw_gomoku_board,
     draw_end_game_screen,
+    draw_notification
 )
 
 
@@ -196,7 +197,7 @@ def main():
             draw_game_screen()
         else:
             screen.blit(menu_surface, (0, 0))
-
+        draw_notification(screen, little_font)
         pygame.display.flip()
 
     pygame.quit()
