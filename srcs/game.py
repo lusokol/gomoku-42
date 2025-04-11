@@ -74,18 +74,18 @@ class Game:
         self.time.start()
     
     def startAIgame(self):
+        self.isAIgame = True       
         self.inGame = True
         self.time.start()
-        self.isAIgame = True       
         
     def setAIdifficulty(self, difficulty):
         self.AIdifficulty = difficulty
         
     def getDifficulty(self):
         return {
-        "FACILE": 2,
-        "MOYEN": 3,
-        "IMPOSSIBLE": 5,
+        "FACILE": 1,
+        "MOYEN": 2,
+        "IMPOSSIBLE": 3,
     }.get(self.AIdifficulty, 1)
 
     def makeMove(self, x, y, player):
@@ -101,15 +101,16 @@ class Game:
     def isDone(self):
         """Collect info if game is done or still running"""
         if self.inGame is False:
-            return False
+            return True
+        return False
 
 
     def getPossibleMoves(self):
         """Check the empty spots on the board to signal them as possible moves for the AI"""
         return [
             (x, y)
-            for y in range(len(self.board))
-            for x in range(len(self.board[0]))
+            for x in range(len(self.board))
+            for y in range(len(self.board[0]))
             if self.board[x][y] == "."
         ]
 
@@ -201,16 +202,21 @@ class Game:
         """
         # If given depth is Zero we return the current game state and None as nothing will be evaluated
         if depth == 0 or game.isDone():
-            return game.checkBoard(game.whoPlay), None
+            return game.checkBoard(self.whoPlay), None  # Always evaluate from the AI's original perspective
 
         top_move = None
+        current_player = game.whoPlay
+        next_player = "p2" if current_player == "p1" else "p1"
+
         if maxim:
             max_check = float("-inf")
             for move in game.getPossibleMoves():
                 x, y = move
-                game.makeMove(x, y, game.whoPlay)
+                game.makeMove(x, y, current_player)
+                game.whoPlay = next_player  # switch turn
                 eval, _ = self.minimax(game, depth - 1, alpha, beta, False)
                 game.undoMove(x, y)
+                game.whoPlay = current_player  # revert
 
                 if eval > max_check:
                     max_check = eval
@@ -226,9 +232,11 @@ class Game:
             min_check = float("inf")
             for move in game.getPossibleMoves():
                 x, y = move
-                game.makeMove(x, y, game.whoPlay)
+                game.makeMove(x, y, current_player)
+                game.whoPlay = next_player  # switch turn
                 eval, _ = self.minimax(game, depth - 1, alpha, beta, True)
                 game.undoMove(x, y)
+                game.whoPlay = current_player  # revert
 
                 if eval < min_check:
                     min_check = eval
@@ -247,7 +255,6 @@ class Game:
 
         #possible_moves = game_copy.getPossibleMoves()
         #move = random.choice(possible_moves) if move == (0, 0) else move
-
         return move
 
     def startPlayer(self):
@@ -278,7 +285,7 @@ class Game:
 
     def setWinner(self, winner=None):
         if winner is None:
-            self.winner = "Noirs" if winner == "p1" else "Blancs"
+            self.winner = "Noirs" if self.whoPlay == "p1" else "Blancs"
         elif self.p1_piece >= 10:
             self.winner = "Noirs"
             self.winnerBy = "capture"
@@ -360,14 +367,15 @@ class Game:
                 self.inGame = False
             else:
                 self.nextTurn()
-                
-            if self.whoPlay == self.IAplayer and self.inGame:
-                depth = self.getDifficulty()
-                ai_move = self.getAImove()
-                if IAmoved is not True:
-                    self.playAt(ai_move, True)
-                else:
-                    self.nextTurn()
+            
+            if self.isAIgame == True:
+                if self.whoPlay == self.IAplayer and self.inGame:
+                    depth = self.getDifficulty()
+                    ai_move = self.getAImove()
+                    if IAmoved is not True:
+                        self.playAt(ai_move, True)
+                    else:
+                        self.nextTurn()
         else:
             show_notification("Double free three interdit !")
 
