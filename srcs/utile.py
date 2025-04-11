@@ -1,5 +1,6 @@
 import config
 import pygame
+import random
 import time
 
 
@@ -205,6 +206,7 @@ def draw_gomoku_board(
     game,
     mouse_pos,
     event,
+    sound_stone,
     board_size=19,
     percentage=0.8,
     line_color=(0, 0, 0),
@@ -330,6 +332,7 @@ def draw_gomoku_board(
                 if rect.collidepoint(adjusted_mousePos) and game.board[row][col] == ".":
                     if mousePressed is True:
                         game.playAt((row, col))
+                        sound_stone[random.randint(0, 3)].play()
                     else:
                         # Dessiner une pierre semi-transparente
                         stone_color = (

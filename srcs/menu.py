@@ -64,6 +64,7 @@ def main():
     # === INIT ===
     pygame.init()
     pygame.font.init()
+    pygame.mixer.init()
     clock = pygame.time.Clock()
 
     # === SETUP ECRAN ===
@@ -149,11 +150,11 @@ def main():
             changeMenu(retour_map.get(menu_actif_id, "accueil"))
             game.reset()
 
-    def draw_game_screen(menu_disable):
+    def draw_game_screen(menu_disable, sound_stone):
         game_surface = pygame.Surface(
             (config.SCREEN_WIDTH // 3 * 2, config.SCREEN_HEIGHT), pygame.SRCALPHA
         )
-        draw_gomoku_board(screen, game_surface, game, pos, menu_disable)
+        draw_gomoku_board(screen, game_surface, game, pos, menu_disable, sound_stone)
         screen.blit(game_surface, ((config.SCREEN_WIDTH // 3, 0)))
         game.dispInfoOn(menu_surface, little_font)
         screen.blit(menu_surface, (0, 0))
@@ -166,6 +167,12 @@ def main():
                 handle_menu_click("REJOUER")
                 # A GERER ================================================
 
+    pygame.mixer.music.load("sounds/moyen.ogg")
+    pygame.mixer.music.set_volume(0.5)
+    pygame.mixer.music.play(-1)  # Joue en boucle infinie
+
+    sound_stones = [pygame.mixer.Sound(f"sounds/stone{i}.ogg") for i in range(1, 5)]
+    sound_click = pygame.mixer.Sound("sounds/click.ogg")
     # === BOUCLE PRINCIPALE ===
     while run:
         clock.tick(60)
@@ -190,12 +197,14 @@ def main():
                 ):
                     menu_disable = True
                 else:
+                    if mouseOn is not None:
+                        sound_click.play()
                     handle_menu_click(mouseOn)
             if event.type == pygame.QUIT:
                 run = False
 
         if menu_actif == menus["ingame"]:
-            draw_game_screen(menu_disable)
+            draw_game_screen(menu_disable, sound_stones)
         else:
             screen.blit(menu_surface, (0, 0))
         draw_notification(screen, little_font)
