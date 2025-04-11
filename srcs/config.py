@@ -1,3 +1,5 @@
+from soundManager import SoundManager
+
 SCREEN_WIDTH = 1920
 SCREEN_HEIGHT = 1080
 HPC = SCREEN_HEIGHT / 100
@@ -16,3 +18,5 @@ NOTIFICATION = {
     "start_time": None,
     "duration": 2  # secondes
 }
+
+sound_manager = SoundManager()

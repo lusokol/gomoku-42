@@ -76,8 +76,18 @@ class Game:
     def startAIgame(self):
         self.isAIgame = True       
         self.inGame = True
+        self.startMusic()
         self.time.start()
         
+    def startMusic(self):
+        if self.AIdifficulty == "FACILE":
+            config.sound_manager.load_music("sounds/facile.ogg")
+        elif self.AIdifficulty == "MOYEN":
+            config.sound_manager.load_music("sounds/moyen.ogg")
+        else:
+            config.sound_manager.load_music("sounds/impossible.ogg")
+        config.sound_manager.play_music()
+
     def setAIdifficulty(self, difficulty):
         self.AIdifficulty = difficulty
         

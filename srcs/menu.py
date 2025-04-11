@@ -95,16 +95,20 @@ def main():
         "accueil": ["JOUER", "OPTIONS", "QUITTER"],
         "jouer": ["SOLO CONTRE L'IA", "PARTIE LOCAL", "RETOUR"],
         "ia": ["FACILE", "MOYEN", "IMPOSSIBLE", "RETOUR"],
-        "option": ["PLEIN ECRAN", "FENÊTRÉ", "RETOUR"],
+        "option": ["AFFICHAGE", "AUDIO", "RETOUR"],
+        "audio": ["MUSIQUE", "SON", "RETOUR"],
+        "affichage": ["PLEIN ECRAN", "FENÊTRÉ", "RETOUR"],
         "fenetre": ["1280X720", "1600X900", "1920X1080", "RETOUR"],
         "ingame": ["RETOUR"],
     }
 
     retour_map = {
-        "fenetre": "option",
+        "fenetre": "affichage",
+        "affichage": "option",
         "ia": "jouer",
         "jouer": "accueil",
         "option": "accueil",
+        "audio": "option",
         "ingame": "accueil",
     }
 
@@ -124,6 +128,10 @@ def main():
             changeMenu("jouer")
         elif mouseOn == "OPTIONS":
             changeMenu("option")
+        elif mouseOn == "AFFICHAGE":
+            changeMenu("affichage")
+        elif mouseOn == "AUDIO":
+            changeMenu("audio")
         elif mouseOn == "QUITTER":
             run = False
         elif mouseOn == "SOLO CONTRE L'IA":
@@ -147,14 +155,17 @@ def main():
             screen, title_font, little_font = updateScreenSize(w, h, False)
             update_assets_after_resize()
         elif mouseOn == "RETOUR":
+            if menu_actif_id == "ingame":
+                config.sound_manager.load_music("sounds/menu.ogg")
+                config.sound_manager.play_music()
             changeMenu(retour_map.get(menu_actif_id, "accueil"))
             game.reset()
 
-    def draw_game_screen(menu_disable, sound_stone):
+    def draw_game_screen(menu_disable):
         game_surface = pygame.Surface(
             (config.SCREEN_WIDTH // 3 * 2, config.SCREEN_HEIGHT), pygame.SRCALPHA
         )
-        draw_gomoku_board(screen, game_surface, game, pos, menu_disable, sound_stone)
+        draw_gomoku_board(screen, game_surface, game, pos, menu_disable)
         screen.blit(game_surface, ((config.SCREEN_WIDTH // 3, 0)))
         game.dispInfoOn(menu_surface, little_font)
         screen.blit(menu_surface, (0, 0))
@@ -167,12 +178,9 @@ def main():
                 handle_menu_click("REJOUER")
                 # A GERER ================================================
 
-    pygame.mixer.music.load("sounds/moyen.ogg")
-    pygame.mixer.music.set_volume(0.5)
-    pygame.mixer.music.play(-1)  # Joue en boucle infinie
+    config.sound_manager.load_music("sounds/menu.ogg")
+    config.sound_manager.play_music()
 
-    sound_stones = [pygame.mixer.Sound(f"sounds/stone{i}.ogg") for i in range(1, 5)]
-    sound_click = pygame.mixer.Sound("sounds/click.ogg")
     # === BOUCLE PRINCIPALE ===
     while run:
         clock.tick(60)
@@ -197,14 +205,14 @@ def main():
                 ):
                     menu_disable = True
                 else:
-                    if mouseOn is not None:
-                        sound_click.play()
+                    if mouseOn is not "none":
+                        config.sound_manager.play_sound("clic")
                     handle_menu_click(mouseOn)
             if event.type == pygame.QUIT:
                 run = False
 
         if menu_actif == menus["ingame"]:
-            draw_game_screen(menu_disable, sound_stones)
+            draw_game_screen(menu_disable)
         else:
             screen.blit(menu_surface, (0, 0))
         draw_notification(screen, little_font)
