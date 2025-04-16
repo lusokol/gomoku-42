@@ -31,29 +31,74 @@ def updateScreenSize(width, height, isFullScreen):
             pygame.font.SysFont("Comic Sans MS", int(config.SCREEN_WIDTH * 0.017)),
         )
 
-
 def getMenu(title_font, pos, logo, button_texts, menu_disable):
     button_surface = pygame.Surface(
         (config.SCREEN_WIDTH // 3, config.SCREEN_HEIGHT), pygame.SRCALPHA
     )
     button_surface.fill(config.COLOR_MENU)
 
-    # Boutons avec texte centré
+    mouseOn = "none"
+
     if len(button_texts) == 1:
         button_rects = [placeButtonAtPercent(80)]
     else:
-        button_rects = [
-            placeButtonAtPercent(40 + (15 * x)) for x in range(len(button_texts))
-        ]
-    mouseOn = "none"
+        button_rects = [placeButtonAtPercent(40 + (15 * x)) for x in range(len(button_texts))]
 
     for rect, text in zip(button_rects, button_texts):
-        button_color = config.COLOR_BUTTON
-        if rect.collidepoint(pos) and not menu_disable:
-            button_color = config.COLOR_BUTTON_HOVER
-            mouseOn = text
-        pygame.draw.rect(button_surface, button_color, rect)
-        draw_text_centered(button_surface, text, title_font, (255, 255, 255), rect)
+        if text in ["MUSIQUE", "EFFETS SONOR"]:
+            # Nom centré
+            draw_text_centered(button_surface, text, title_font, (255, 255, 255), rect)
+
+            # Boutons - et +
+            margin = 10
+            side_width = config.HPC * 10
+            side_height = rect.height
+            left_rect = pygame.Rect(rect.left, rect.top, side_width, side_height)
+            right_rect = pygame.Rect(rect.right - side_width, rect.top, side_width, side_height)
+
+            if left_rect.collidepoint(pos) and not menu_disable:
+                pygame.draw.rect(button_surface, config.COLOR_BUTTON_HOVER, left_rect)
+                mouseOn = f"{text}-"
+            else:
+                pygame.draw.rect(button_surface, config.COLOR_BUTTON, left_rect)
+
+            if right_rect.collidepoint(pos) and not menu_disable:
+                pygame.draw.rect(button_surface, config.COLOR_BUTTON_HOVER, right_rect)
+                mouseOn = f"{text}+"
+            else:
+                pygame.draw.rect(button_surface, config.COLOR_BUTTON, right_rect)
+
+            draw_text_centered(button_surface, "-", title_font, (255, 255, 255), left_rect)
+            draw_text_centered(button_surface, "+", title_font, (255, 255, 255), right_rect)
+
+            # Barre de volume
+            bar_width = rect.width - 2 * side_width - 2 * margin
+            bar_x = rect.left + side_width + margin
+            bar_y = rect.bottom - 20  # Position en bas du bouton
+            segment_width = bar_width // 10
+            segment_height = 5
+            volumes = {
+                "MUSIQUE": config.sound_manager.music_volume,
+                "EFFETS SONOR": config.sound_manager.sounds_volume
+            }
+            current_volume = volumes[text]
+
+            for i in range(10):
+                seg_color = (255, 255, 255) if i < current_volume else (100, 100, 100)
+                pygame.draw.rect(
+                    button_surface,
+                    seg_color,
+                    pygame.Rect(bar_x + i * segment_width, bar_y, segment_width - 2, segment_height),
+                )
+
+        else:
+            button_color = config.COLOR_BUTTON
+            if rect.collidepoint(pos) and not menu_disable:
+                button_color = config.COLOR_BUTTON_HOVER
+                mouseOn = text
+            pygame.draw.rect(button_surface, button_color, rect)
+            draw_text_centered(button_surface, text, title_font, (255, 255, 255), rect)
+
     image_rect = logo.get_rect(center=(config.WPC * 50, config.HPC * 20))
     button_surface.blit(logo, image_rect)
 
@@ -96,7 +141,7 @@ def main():
         "jouer": ["SOLO CONTRE L'IA", "PARTIE LOCAL", "RETOUR"],
         "ia": ["FACILE", "MOYEN", "IMPOSSIBLE", "RETOUR"],
         "option": ["AFFICHAGE", "AUDIO", "RETOUR"],
-        "audio": ["MUSIQUE", "SON", "RETOUR"],
+        "audio": ["MUSIQUE", "EFFETS SONOR", "RETOUR"],
         "affichage": ["PLEIN ECRAN", "FENÊTRÉ", "RETOUR"],
         "fenetre": ["1280X720", "1600X900", "1920X1080", "RETOUR"],
         "ingame": ["RETOUR"],
@@ -132,6 +177,14 @@ def main():
             changeMenu("affichage")
         elif mouseOn == "AUDIO":
             changeMenu("audio")
+        elif mouseOn == "MUSIQUE+":
+            config.sound_manager.music_up()
+        elif mouseOn == "MUSIQUE-":
+            config.sound_manager.music_down()
+        elif mouseOn == "EFFETS SONOR+":
+            config.sound_manager.sound_up()
+        elif mouseOn == "EFFETS SONOR-":
+            config.sound_manager.sound_down()
         elif mouseOn == "QUITTER":
             run = False
         elif mouseOn == "SOLO CONTRE L'IA":
@@ -205,7 +258,7 @@ def main():
                 ):
                     menu_disable = True
                 else:
-                    if mouseOn is not "none":
+                    if mouseOn !="none":
                         config.sound_manager.play_sound("clic")
                     handle_menu_click(mouseOn)
             if event.type == pygame.QUIT:
