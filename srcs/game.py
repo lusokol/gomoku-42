@@ -48,6 +48,7 @@ class Game:
         self.turn = 1
         self.time = self.Time()
         self.start_time = 0
+        self.last_move = None
         self.p1_piece = 0
         self.p2_piece = 0
         self.winner = ""
@@ -149,13 +150,22 @@ class Game:
             print(self.board[i])
 
     def getPossibleMoves(self):
-        """Check the empty spots on the board to signal them as possible moves for the AI"""
-        return [
-            (x, y)
-            for x in range(len(self.board))
-            for y in range(len(self.board[0]))
-            if self.board[x][y] == "."
-        ]
+        radius = 2
+        moves = []
+
+        if self.last_move is None:
+            # First move: return center
+            size_x, size_y = len(self.board), len(self.board[0])
+            return [(size_x // 2, size_y // 2)]
+
+        x0, y0 = self.last_move
+        for dx in range(-radius, radius + 1):
+            for dy in range(-radius, radius + 1):
+                x, y = x0 + dx, y0 + dy
+                if 0 <= x < len(self.board) and 0 <= y < len(self.board[0]):
+                    if self.board[x][y] == ".":
+                        moves.append((x, y))
+        return moves
 
     def checkBoard(self, player):
         opponent = "p1" if player == "p2" else "p2"
@@ -163,53 +173,46 @@ class Game:
         opp_symbol = self.getSymbolFromPlayer(opponent)
 
         score = 0
-        center_weight = 5
         center_x, center_y = len(self.board[0]) // 2, len(self.board) // 2
 
-        # Prioritize the center
+        # Center priority (higher score for playing closer to the center)
         for y in range(len(self.board)):
             for x in range(len(self.board[0])):
-                if self.board[y][x] == symbol:
-                    dist = abs(center_x - x) + abs(center_y - y)
-                    score += center_weight * max(0, 10 - dist)
-                elif self.board[y][x] == opp_symbol:
-                    dist = abs(center_x - x) + abs(center_y - y)
-                    score -= center_weight * max(0, 10 - dist)
+                dist = abs(center_x - x) + abs(center_y - y)
+                cell = self.board[y][x]
+                if cell == symbol:
+                    score += max(0, 10 - dist)
+                elif cell == opp_symbol:
+                    score -= max(0, 10 - dist)
 
-        # Check if the current player has winning alignments
+        # Pattern evaluation (alignments and blocking)
         for y in range(len(self.board)):
             for x in range(len(self.board[0])):
-                if self.board[y][x] == symbol:
-                    align_len, open_spots = self.checkLines(
-                        symbol, (y, x)
-                    )  # Unpack the tuple
-                    if align_len:
-                        score += align_len * 100  # More points for bigger alignments
-                        if align_len >= 4:  # If the player can win next move
-                            score += 500
-                    score += (
-                        open_spots * 10
-                    )  # Add points for open spots in the alignment
+                for current_symbol, is_player in [(symbol, True), (opp_symbol, False)]:
+                    align_len, open_ends = self.checkLines(current_symbol, (y, x))
+                    # Win Condition
+                    if align_len >= 5:
+                        return 10000 if is_player else -10000
+                    # Evaluate alignments
+                    pattern_score = 0
+                    if align_len == 4 and open_ends >= 1:
+                        pattern_score = 8000  # Strong alignment for player
+                    elif align_len == 3 and open_ends >= 1:
+                        pattern_score = 5000  # Potential win
+                    elif align_len == 2:
+                        pattern_score = 2000  # Build-up toward winning
 
-                elif self.board[y][x] == opp_symbol:
-                    align_len, open_spots = self.checkLines(
-                        opp_symbol, (y, x)
-                    )  # Unpack the tuple
-                    if align_len:
-                        score -= (
-                            align_len * 80
-                        )  # Deduct points for the opponent's alignments
-                        if align_len >= 4:  # If the opponent can win next move
-                            score -= 500
-                    score -= (
-                        open_spots * 10
-                    )  # Deduct points for open spots in the opponent's alignment
+                    # Slightly stronger defense if opponent
+                    if not is_player:
+                        pattern_score *= -1.3
 
-        # Special cases if a win is about to happen
+                    score += pattern_score
+
+        # Add pending win bonus (this gives extra weight to winning moves)
         if self.pending_win and self.pending_win["player"] == player:
-            score += 5000
+            score += 10000
         elif self.pending_win and self.pending_win["player"] == opponent:
-            score -= 5000
+            score -= 10000
 
         return score
 
@@ -269,7 +272,6 @@ class Game:
             for move in game.getPossibleMoves():
                 x, y = move
                 game.playAt((x, y))
-                # game.makeMove(x, y, current_player)
                 game.whoPlay = next_player  # switch turn
                 eval, _ = self.minimax(game, depth - 1, alpha, beta, False)
                 game.undoLastMove()
@@ -312,9 +314,6 @@ class Game:
         _, move = self.minimax(
             game_copy, depth, alpha=float("-inf"), beta=float("inf"), maxim=True
         )
-
-        # possible_moves = game_copy.getPossibleMoves()
-        # move = random.choice(possible_moves) if move == (0, 0) else move
         return move
 
     def startPlayer(self):
@@ -387,6 +386,7 @@ class Game:
             tmp_history.append(
                 {"coords": (coords[0], coords[1]), "symbol": symbol, "effect": "add"}
             )
+            self.last_move = coords
 
             if isCapture:
                 for piece in pieceCaptured:
