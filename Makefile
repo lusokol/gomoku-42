@@ -10,7 +10,7 @@ format:
 	black .
 
 # Linter pour vérifier la qualité du code
-lint:
+norme:
 	flake8 .
 
 # Tests (si on veut faire des tests unitaire ?)
@@ -26,6 +26,6 @@ clean:
 help:
 	@echo "make run      - Lance le projet"
 	@echo "make format   - Formatte le code avec Black"
-	@echo "make lint     - Vérifie le code avec flake8"
+	@echo "make norme     - Vérifie le code avec flake8"
 	@echo "make test     - Lance les tests avec pytest"
 	@echo "make clean    - Supprime les fichiers temporaires"

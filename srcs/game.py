@@ -150,6 +150,12 @@ class Game:
             print(self.board[i])
 
     def getPossibleMoves(self):
+        return [
+            (x, y)
+            for y in range(config.GRID_SIZE)
+            for x in range(config.GRID_SIZE)
+            if self.board[x][y] == "."
+        ]
         radius = 2
         moves = []
 
@@ -172,49 +178,71 @@ class Game:
         symbol = self.getSymbolFromPlayer(player)
         opp_symbol = self.getSymbolFromPlayer(opponent)
 
-        score = 0
-        center_x, center_y = len(self.board[0]) // 2, len(self.board) // 2
+        score_total = 0
 
-        # Center priority (higher score for playing closer to the center)
-        for y in range(len(self.board)):
-            for x in range(len(self.board[0])):
-                dist = abs(center_x - x) + abs(center_y - y)
-                cell = self.board[y][x]
-                if cell == symbol:
-                    score += max(0, 10 - dist)
-                elif cell == opp_symbol:
-                    score -= max(0, 10 - dist)
+        if (self.last_move is not None):
+            # appelle des fonctions de check par rapport aux coords "self.last_move"
+            score_alignments = self.check_alignments() # doit return [{"H": 4}, {"DM": 3}] arg1 :("H", "V", "DM", "DD") arg2: nb piece aligned
+            score_block = self.check_blocks()
+            score_capture = self.check_capture() # doit return le score du total des captures par rapport au last move
+            # coder le cumule du score
 
-        # Pattern evaluation (alignments and blocking)
-        for y in range(len(self.board)):
-            for x in range(len(self.board[0])):
-                for current_symbol, is_player in [(symbol, True), (opp_symbol, False)]:
-                    align_len, open_ends = self.checkLines(current_symbol, (y, x))
-                    # Win Condition
-                    if align_len >= 5:
-                        return 10000 if is_player else -10000
-                    # Evaluate alignments
-                    pattern_score = 0
-                    if align_len == 4 and open_ends >= 1:
-                        pattern_score = 8000  # Strong alignment for player
-                    elif align_len == 3 and open_ends >= 1:
-                        pattern_score = 5000  # Potential win
-                    elif align_len == 2:
-                        pattern_score = 2000  # Build-up toward winning
 
-                    # Slightly stronger defense if opponent
-                    if not is_player:
-                        pattern_score *= -1.3
 
-                    score += pattern_score
+        # else:
+            # jouer le plus au centre possible ET voir score en fonction du coup adverse s'il a joué
+    
 
-        # Add pending win bonus (this gives extra weight to winning moves)
-        if self.pending_win and self.pending_win["player"] == player:
-            score += 10000
-        elif self.pending_win and self.pending_win["player"] == opponent:
-            score -= 10000
 
-        return score
+
+    
+        # opponent = "p1" if player == "p2" else "p2"
+        # symbol = self.getSymbolFromPlayer(player)
+        # opp_symbol = self.getSymbolFromPlayer(opponent)
+
+        # score = 0
+        # center_x, center_y = len(self.board[0]) // 2, len(self.board) // 2
+
+        # # Center priority (higher score for playing closer to the center)
+        # for y in range(len(self.board)):
+        #     for x in range(len(self.board[0])):
+        #         dist = abs(center_x - x) + abs(center_y - y)
+        #         cell = self.board[y][x]
+        #         if cell == symbol:
+        #             score += max(0, 10 - dist)
+        #         elif cell == opp_symbol:
+        #             score -= max(0, 10 - dist)
+
+        # # Pattern evaluation (alignments and blocking)
+        # for y in range(len(self.board)):
+        #     for x in range(len(self.board[0])):
+        #         for current_symbol, is_player in [(symbol, True), (opp_symbol, False)]:
+        #             align_len, open_ends = self.checkLines(current_symbol, (y, x))
+        #             # Win Condition
+        #             if align_len >= 5:
+        #                 return 10000 if is_player else -10000
+        #             # Evaluate alignments
+        #             pattern_score = 0
+        #             if align_len == 4 and open_ends >= 1:
+        #                 pattern_score = 8000  # Strong alignment for player
+        #             elif align_len == 3 and open_ends >= 1:
+        #                 pattern_score = 5000  # Potential win
+        #             elif align_len == 2:
+        #                 pattern_score = 2000  # Build-up toward winning
+
+        #             # Slightly stronger defense if opponent
+        #             if not is_player:
+        #                 pattern_score *= -1.3
+
+        #             score += pattern_score
+
+        # # Add pending win bonus (this gives extra weight to winning moves)
+        # if self.pending_win and self.pending_win["player"] == player:
+        #     score += 10000
+        # elif self.pending_win and self.pending_win["player"] == opponent:
+        #     score -= 10000
+
+        # return score
 
     def minimax(self, game, depth, alpha, beta, maxim):
         """The minimax algorithm works as follows: A Game Tree
@@ -259,7 +287,7 @@ class Game:
         # If given depth is Zero we return the current game state and None as nothing will be evaluated
         if depth == 0 or game.isDone():
             return (
-                game.checkBoard(self.whoPlay),
+                game.checkBoard(game.whoPlay),
                 None,
             )  # Always evaluate from the AI's original perspective
 
@@ -273,7 +301,7 @@ class Game:
                 x, y = move
                 game.playAt((x, y))
                 game.whoPlay = next_player  # switch turn
-                eval, _ = self.minimax(game, depth - 1, alpha, beta, False)
+                eval, _ = game.minimax(game, depth - 1, alpha, beta, False)
                 game.undoLastMove()
                 game.whoPlay = current_player  # revert
 
@@ -293,7 +321,7 @@ class Game:
                 x, y = move
                 game.playAt((x, y))
                 game.whoPlay = next_player  # switch turn
-                eval, _ = self.minimax(game, depth - 1, alpha, beta, True)
+                eval, _ = game.minimax(game, depth - 1, alpha, beta, True)
                 game.undoLastMove()
                 game.whoPlay = current_player  # revert
 
