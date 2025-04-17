@@ -6,7 +6,7 @@ from utile import (
     draw_text_centered,
     draw_gomoku_board,
     draw_end_game_screen,
-    draw_notification
+    draw_notification,
 )
 
 
@@ -31,6 +31,7 @@ def updateScreenSize(width, height, isFullScreen):
             pygame.font.SysFont("Comic Sans MS", int(config.SCREEN_WIDTH * 0.017)),
         )
 
+
 def getMenu(title_font, pos, logo, button_texts, menu_disable):
     button_surface = pygame.Surface(
         (config.SCREEN_WIDTH // 3, config.SCREEN_HEIGHT), pygame.SRCALPHA
@@ -42,7 +43,9 @@ def getMenu(title_font, pos, logo, button_texts, menu_disable):
     if len(button_texts) == 1:
         button_rects = [placeButtonAtPercent(80)]
     else:
-        button_rects = [placeButtonAtPercent(40 + (15 * x)) for x in range(len(button_texts))]
+        button_rects = [
+            placeButtonAtPercent(40 + (15 * x)) for x in range(len(button_texts))
+        ]
 
     for rect, text in zip(button_rects, button_texts):
         if text in ["MUSIQUE", "EFFETS SONOR"]:
@@ -54,7 +57,9 @@ def getMenu(title_font, pos, logo, button_texts, menu_disable):
             side_width = config.HPC * 10
             side_height = rect.height
             left_rect = pygame.Rect(rect.left, rect.top, side_width, side_height)
-            right_rect = pygame.Rect(rect.right - side_width, rect.top, side_width, side_height)
+            right_rect = pygame.Rect(
+                rect.right - side_width, rect.top, side_width, side_height
+            )
 
             if left_rect.collidepoint(pos) and not menu_disable:
                 pygame.draw.rect(button_surface, config.COLOR_BUTTON_HOVER, left_rect)
@@ -68,8 +73,12 @@ def getMenu(title_font, pos, logo, button_texts, menu_disable):
             else:
                 pygame.draw.rect(button_surface, config.COLOR_BUTTON, right_rect)
 
-            draw_text_centered(button_surface, "-", title_font, (255, 255, 255), left_rect)
-            draw_text_centered(button_surface, "+", title_font, (255, 255, 255), right_rect)
+            draw_text_centered(
+                button_surface, "-", title_font, (255, 255, 255), left_rect
+            )
+            draw_text_centered(
+                button_surface, "+", title_font, (255, 255, 255), right_rect
+            )
 
             # Barre de volume
             bar_width = rect.width - 2 * side_width - 2 * margin
@@ -79,7 +88,7 @@ def getMenu(title_font, pos, logo, button_texts, menu_disable):
             segment_height = 5
             volumes = {
                 "MUSIQUE": config.sound_manager.music_volume,
-                "EFFETS SONOR": config.sound_manager.sounds_volume
+                "EFFETS SONOR": config.sound_manager.sounds_volume,
             }
             current_volume = volumes[text]
 
@@ -88,7 +97,12 @@ def getMenu(title_font, pos, logo, button_texts, menu_disable):
                 pygame.draw.rect(
                     button_surface,
                     seg_color,
-                    pygame.Rect(bar_x + i * segment_width, bar_y, segment_width - 2, segment_height),
+                    pygame.Rect(
+                        bar_x + i * segment_width,
+                        bar_y,
+                        segment_width - 2,
+                        segment_height,
+                    ),
                 )
 
         else:
@@ -258,7 +272,7 @@ def main():
                 ):
                     menu_disable = True
                 else:
-                    if mouseOn !="none":
+                    if mouseOn != "none":
                         config.sound_manager.play_sound("clic")
                     handle_menu_click(mouseOn)
             if event.type == pygame.QUIT:

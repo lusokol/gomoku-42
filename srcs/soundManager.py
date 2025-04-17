@@ -1,6 +1,7 @@
 import pygame
 import random
 
+
 class SoundManager:
     def __init__(self):
         pygame.mixer.init()
@@ -9,12 +10,15 @@ class SoundManager:
         self.music_volume = 5
         self.music_loaded = False
         self.load_sound("clic", "sounds/clic.ogg")
-        self.load_sound("stones", [
-            "sounds/stone1.ogg",
-            "sounds/stone2.ogg",
-            "sounds/stone3.ogg",
-            "sounds/stone4.ogg"
-        ])
+        self.load_sound(
+            "stones",
+            [
+                "sounds/stone1.ogg",
+                "sounds/stone2.ogg",
+                "sounds/stone3.ogg",
+                "sounds/stone4.ogg",
+            ],
+        )
 
     def load_sound(self, name, paths):
         if isinstance(paths, str):

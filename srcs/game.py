@@ -4,6 +4,7 @@ import config
 from copy import deepcopy
 from utile import placeButtonAtPercent, draw_text_in_rect, show_notification
 
+
 class Game:
     def __init__(self):
         self.reset()
@@ -54,7 +55,7 @@ class Game:
         self.isAIgame = False
         self.AIdifficulty = "FACILE"
         self.whoStart = "p1" if self.startPlayer() else "p2"
-        self.IAplayer =  "p1" if self.whoStart == "p2" else "p2"
+        self.IAplayer = "p1" if self.whoStart == "p2" else "p2"
         self.whoPlay = (
             self.whoStart
             if (self.turn % 2)
@@ -68,17 +69,18 @@ class Game:
             ["." for _ in range(config.GRID_SIZE)] for _ in range(config.GRID_SIZE)
         ]
         self.pending_win = None
-    
+        self.history = []
+
     def startGame(self):
         self.inGame = True
         self.time.start()
-    
+
     def startAIgame(self):
-        self.isAIgame = True       
+        self.isAIgame = True
         self.inGame = True
         self.startMusic()
         self.time.start()
-        
+
     def startMusic(self):
         if self.AIdifficulty == "FACILE":
             config.sound_manager.load_music("sounds/facile.ogg")
@@ -90,23 +92,51 @@ class Game:
 
     def setAIdifficulty(self, difficulty):
         self.AIdifficulty = difficulty
-        
+
     def getDifficulty(self):
         return {
-        "FACILE": 1,
-        "MOYEN": 2,
-        "IMPOSSIBLE": 3,
-    }.get(self.AIdifficulty, 1)
+            "FACILE": 1,
+            "MOYEN": 2,
+            "IMPOSSIBLE": 3,
+        }.get(self.AIdifficulty, 1)
 
     def makeMove(self, x, y, player):
         """Record move from player"""
         self.board[x][y] = player
 
+    def undoLastMove(self):
+        """Undo the last move played by simulation."""
+        if not self.history:
+            print("Aucun coup à annuler.")
+            return
 
-    def undoMove(self, x, y):
-        """Undo the move from AI"""
-        self.board[x][y] = "."
+        last_move = self.history.pop()  # On récupère et retire le dernier move
 
+        for action in reversed(last_move):  # On annule les actions dans l’ordre inverse
+            x, y = action["coords"]
+            symbol = action["symbol"]
+            effect = action["effect"]
+
+            if effect == "add":
+                self.board[x][y] = "."  # On enlève le pion ajouté
+            elif effect == "remove":
+                self.board[x][y] = symbol  # On remet le pion retiré
+
+                # Remettre le nombre de pion capturés
+                if symbol == "1":
+                    self.p1_piece -= 1
+                else:
+                    self.p2_piece -= 1
+
+        # Remettre le tour précédent
+        self.turn -= 1
+        self.whoPlay = (
+            self.whoStart
+            if self.turn % 2 == 0
+            else "p1"
+            if self.whoStart == "p2"
+            else "p2"
+        )
 
     def isDone(self):
         """Collect info if game is done or still running"""
@@ -114,6 +144,9 @@ class Game:
             return True
         return False
 
+    def printBoard(self):
+        for i in range(19):
+            print(self.board[i])
 
     def getPossibleMoves(self):
         """Check the empty spots on the board to signal them as possible moves for the AI"""
@@ -132,35 +165,45 @@ class Game:
         score = 0
         center_weight = 5
         center_x, center_y = len(self.board[0]) // 2, len(self.board) // 2
-        
+
         # Prioritize the center
         for y in range(len(self.board)):
             for x in range(len(self.board[0])):
                 if self.board[y][x] == symbol:
                     dist = abs(center_x - x) + abs(center_y - y)
-                    score += (center_weight * max(0, 10 - dist))
+                    score += center_weight * max(0, 10 - dist)
                 elif self.board[y][x] == opp_symbol:
                     dist = abs(center_x - x) + abs(center_y - y)
-                    score -= (center_weight * max(0, 10 - dist))
+                    score -= center_weight * max(0, 10 - dist)
 
         # Check if the current player has winning alignments
         for y in range(len(self.board)):
             for x in range(len(self.board[0])):
                 if self.board[y][x] == symbol:
-                    align_len, open_spots = self.checkLines(symbol, (y, x))  # Unpack the tuple
+                    align_len, open_spots = self.checkLines(
+                        symbol, (y, x)
+                    )  # Unpack the tuple
                     if align_len:
                         score += align_len * 100  # More points for bigger alignments
                         if align_len >= 4:  # If the player can win next move
                             score += 500
-                    score += open_spots * 10  # Add points for open spots in the alignment
+                    score += (
+                        open_spots * 10
+                    )  # Add points for open spots in the alignment
 
                 elif self.board[y][x] == opp_symbol:
-                    align_len, open_spots = self.checkLines(opp_symbol, (y, x))  # Unpack the tuple
+                    align_len, open_spots = self.checkLines(
+                        opp_symbol, (y, x)
+                    )  # Unpack the tuple
                     if align_len:
-                        score -= align_len * 80  # Deduct points for the opponent's alignments
+                        score -= (
+                            align_len * 80
+                        )  # Deduct points for the opponent's alignments
                         if align_len >= 4:  # If the opponent can win next move
                             score -= 500
-                    score -= open_spots * 10  # Deduct points for open spots in the opponent's alignment
+                    score -= (
+                        open_spots * 10
+                    )  # Deduct points for open spots in the opponent's alignment
 
         # Special cases if a win is about to happen
         if self.pending_win and self.pending_win["player"] == player:
@@ -169,7 +212,6 @@ class Game:
             score -= 5000
 
         return score
-
 
     def minimax(self, game, depth, alpha, beta, maxim):
         """The minimax algorithm works as follows: A Game Tree
@@ -185,7 +227,8 @@ class Game:
 
         We have 2 states : game is finished vs game is not finished.
         In the first case, the game was either won, tied or lost;
-        In the second case, the game is ongoing and the algo will return the score afer evaluating the state of the game.
+        In the second case, the game is ongoing and the algo will return the score afer
+        evaluating the state of the game.
 
         Maximizing Player's move : the algo looks for the moves that would increase
         the maximizing player's chances of winning.
@@ -212,7 +255,10 @@ class Game:
         """
         # If given depth is Zero we return the current game state and None as nothing will be evaluated
         if depth == 0 or game.isDone():
-            return game.checkBoard(self.whoPlay), None  # Always evaluate from the AI's original perspective
+            return (
+                game.checkBoard(self.whoPlay),
+                None,
+            )  # Always evaluate from the AI's original perspective
 
         top_move = None
         current_player = game.whoPlay
@@ -222,10 +268,11 @@ class Game:
             max_check = float("-inf")
             for move in game.getPossibleMoves():
                 x, y = move
-                game.makeMove(x, y, current_player)
+                game.playAt((x, y))
+                # game.makeMove(x, y, current_player)
                 game.whoPlay = next_player  # switch turn
                 eval, _ = self.minimax(game, depth - 1, alpha, beta, False)
-                game.undoMove(x, y)
+                game.undoLastMove()
                 game.whoPlay = current_player  # revert
 
                 if eval > max_check:
@@ -242,10 +289,10 @@ class Game:
             min_check = float("inf")
             for move in game.getPossibleMoves():
                 x, y = move
-                game.makeMove(x, y, current_player)
+                game.playAt((x, y))
                 game.whoPlay = next_player  # switch turn
                 eval, _ = self.minimax(game, depth - 1, alpha, beta, True)
-                game.undoMove(x, y)
+                game.undoLastMove()
                 game.whoPlay = current_player  # revert
 
                 if eval < min_check:
@@ -257,14 +304,17 @@ class Game:
                     break
 
             return min_check, top_move
-        
+
     def getAImove(self):
         depth = self.getDifficulty()
         game_copy = deepcopy(self)
-        _, move = self.minimax(game_copy, depth, alpha=float("-inf"), beta=float("inf"), maxim=True)
+        game_copy.isAIgame = False
+        _, move = self.minimax(
+            game_copy, depth, alpha=float("-inf"), beta=float("inf"), maxim=True
+        )
 
-        #possible_moves = game_copy.getPossibleMoves()
-        #move = random.choice(possible_moves) if move == (0, 0) else move
+        # possible_moves = game_copy.getPossibleMoves()
+        # move = random.choice(possible_moves) if move == (0, 0) else move
         return move
 
     def startPlayer(self):
@@ -328,14 +378,25 @@ class Game:
         )
 
     def playAt(self, coords, IAmoved=False):
+        tmp_history = []
         symbol = "1" if self.whoPlay == "p1" else "2"
         isCapture, pieceCaptured = self.check_if_capture(coords, symbol)
 
         if isCapture or self.checkIfAutorized(coords, symbol):
             self.board[coords[0]][coords[1]] = symbol
+            tmp_history.append(
+                {"coords": (coords[0], coords[1]), "symbol": symbol, "effect": "add"}
+            )
 
             if isCapture:
                 for piece in pieceCaptured:
+                    tmp_history.append(
+                        {
+                            "coords": (piece[0], piece[1]),
+                            "symbol": self.board[piece[0]][piece[1]],
+                            "effect": "remove",
+                        }
+                    )
                     self.board[piece[0]][piece[1]] = "."
                     self.addCapturePiece()
 
@@ -377,10 +438,10 @@ class Game:
                 self.inGame = False
             else:
                 self.nextTurn()
-            
-            if self.isAIgame == True:
+
+            if self.isAIgame is True:
                 if self.whoPlay == self.IAplayer and self.inGame:
-                    depth = self.getDifficulty()
+                    self.getDifficulty()
                     ai_move = self.getAImove()
                     if IAmoved is not True:
                         self.playAt(ai_move, True)
@@ -388,6 +449,7 @@ class Game:
                         self.nextTurn()
         else:
             show_notification("Double free three interdit !")
+        self.history.append(tmp_history)
 
     def check_if_capture(self, coords, symbol):
         row, col = coords
@@ -505,14 +567,16 @@ class Game:
 
         # Si aucune capture n'est possible, la ligne n'est pas cassable
         return False
-    
+
     def checkLines(self, symbol, start_pos):
-        """Check all directions (horizontal, vertical, and both diagonals) for the longest alignment of the given symbol."""
+        """
+        Check all directions (horizontal, vertical, and both diagonals) for the longest alignment of the given symbol.
+        """
         directions = [
             (1, 0),  # Horizontal
             (0, 1),  # Vertical
             (1, 1),  # Diagonal down-right
-            (1, -1)  # Diagonal up-right
+            (1, -1),  # Diagonal up-right
         ]
 
         max_len = 0

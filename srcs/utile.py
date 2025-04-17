@@ -1,6 +1,5 @@
 import config
 import pygame
-import random
 import time
 
 
@@ -129,8 +128,9 @@ def draw_end_game_screen(screen, game, title_font, little_font):
     separator_color = (255, 255, 255)
 
     lines = [
-        f"Victoire du {game.winner} par {game.winnerBy} !" if game.winner != "draw" else
-        f"Egalité !",
+        f"Victoire du {game.winner} par {game.winnerBy} !"
+        if game.winner != "draw"
+        else "Egalité !",
         f"Temps de la partie : {game.time.getEndTime()}",
         f"Nombre de tours : {game.turn}",
     ]
