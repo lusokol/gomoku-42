@@ -239,7 +239,6 @@ class Game:
         
         return total_score
         
-
     def check_last_capture(self, player):
         score = 0
         nb_capture = 0
@@ -250,6 +249,14 @@ class Game:
             max_index = 4 #len(config.codes[f"{player}_C"]) - 1
             score += sum(config.codes[f"{player}_C"][min(index_start + i, max_index)] for i in range(nb_capture / 2))
         return score            
+
+    def calc_placement_score(self):
+        x, y = self.last_move
+        center = config.GRID_SIZE // 2
+        dx = abs(x - center)
+        dy = abs(y - center)
+        # chaque moitié (X et Y) compte pour 100 pts
+        return int(((center - dx) + (center - dy)) / center * (config.codes["CENTER"] / 2))
 
     def checkBoard(self, player):
         pToJ = {
@@ -267,7 +274,9 @@ class Game:
             score_alignments = self.check_alignments() # doit return [{"H": 4}, {"DM": 3}] arg1 :("H", "V", "DM", "DD") arg2: nb piece aligned
             score_block = self.check_blocks()
             score_capture = self.check_last_capture(pToJ[player]) # doit return le score du total des captures par rapport au last move
-            score_total = score_alignments + score_block + score_capture
+            placement_score = self.calc_placement_score()
+            
+            score_total = score_alignments + score_block + score_capture + placement_score
             # coder le cumule du score
         return score_total
 

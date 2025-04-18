@@ -22,6 +22,9 @@ sound_manager = SoundManager()
 # JX-
 
 codes = {
+    # Value from 0 to CENTER about how center is you piece
+    "CENTER": 200,
+
     # === IA (J1) – Alignements ===
     "J1_5": 999999,
     "J1_4_OPEN": 9000,
@@ -37,13 +40,10 @@ codes = {
 
     # === IA (J1) – Blocages sur J2 ===
     "J1_BLOCK_5": 999999,
-    "J1_BLOCK_4_OPEN": 9000,
     "J1_BLOCK_4_SEMI": 6000,
-    "J1_BLOCK_4_CLOSED": 2000,
-    "J1_BLOCK_3_OPEN": 4000,
-    "J1_BLOCK_3_SEMI": 2000,
+    "J1_BLOCK_4_CLOSED": 9000,
+    "J1_BLOCK_3_SEMI": 3000,
     "J1_BLOCK_3_CLOSED": 500,
-    "J1_BLOCK_2_OPEN": 500,
     "J1_BLOCK_2_SEMI": 200,
     "J1_BLOCK_2_CLOSED": 50,
     "J1_BLOCK_1": 10,
