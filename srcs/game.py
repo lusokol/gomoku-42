@@ -1,6 +1,7 @@
 import random
 import pygame
 import config
+from config import codes
 from copy import deepcopy
 from utile import placeButtonAtPercent, draw_text_in_rect, show_notification
 
@@ -172,6 +173,72 @@ class Game:
                     if self.board[x][y] == ".":
                         moves.append((x, y))
         return moves
+    
+    def check_alignments(self, player) -> int:
+        """check_alignments is a helper function for our great check_board function.
+        It will study the board since the last move that was played;
+        from there, it will calculate the surrounding alignments;
+        thus returning the total amount of scores that will compose our comparison code;"""
+        if self.last_move is None:
+            return 0
+
+        directions = {
+            "horizon": (1, 0),
+            "vertical": (0, 1),
+            "diago_down": (1, 1),
+            "diago_up": (1, -1)
+        }
+        
+        score_board = {
+            0: "OPEN",
+            1: "SEMI",
+            2: "CLOSED"
+        }
+        
+        scores = {}
+
+        total_score = 0
+        symbol = self.getSymbolFromPlayer(player)
+        board = self.board
+        height = len(board)
+        width = len(board[0])
+        coord_x, coord_y = self.last_move
+        
+        def inBounds(x, y):
+            """We simply check if the current element we are working on is indeed inside of the grid"""
+            return 0 <= x < width and 0 <= y < height
+
+        for direction_name, (dx, dy) in directions.items(): #we start the counter at one since we have placed a tile
+            count = 1
+            ends = 0
+            score = 0
+            
+            for dir in [-1, 1]:  #check both sides 
+                for i in range(1, 5):
+                    x = coord_x + dir * dx * i
+                    y = coord_y + dir * dy * i
+                    if not inBounds(x, y, width, height):
+                        ends += 1
+                        break
+                    if board[y][x] == symbol: #if symbol is met then add 1 to count => alignment
+                        count += 1
+                    elif board[y][x] == ".": #break => the alignment is broken
+                        break
+                    else:
+                        ends += 1
+                        break
+                    
+            if count >= 5:
+                score += codes.get(f"{player}_5", 999999)
+            elif count == 1:
+                score += codes.get(f"{player}_1", 0)        
+            else:
+                score += codes.get(f"{player}_{count}_{score_board[ends]}", 0)
+
+            total_score += score
+        
+        return total_score
+        
 
     def check_last_capture(self, player):
         score = 0
