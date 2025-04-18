@@ -397,7 +397,7 @@ class Game:
 
         # return score
 
-    def minimax(self, game, depth, alpha, beta, maxim):
+    def minimax(self, depth, alpha, beta, maxim):
         """The minimax algorithm works as follows: A Game Tree
         On one side, we have the root situation (the current game state we are in);
         Then, the study of the next moves that could be seen as nodes from that tree.
@@ -437,63 +437,92 @@ class Game:
         In our case, if Beta <= Alpha,
         We break and stop the evaluation on this branch because we will not find anything better.
         """
-        # If given depth is Zero we return the current game state and None as nothing will be evaluated
-        if depth == 0 or game.isDone():
+        if depth == 0 or self.isDone():
             return (
-                game.checkBoard(game.whoPlay),
+                #le move a jouer
                 None,
-            )  # Always evaluate from the AI's original perspective
+            )
 
         top_move = None
-        current_player = game.whoPlay
+        current_player = self.whoPlay
         next_player = "p2" if current_player == "p1" else "p1"
 
         if maxim:
             max_check = float("-inf")
-            for move in game.getPossibleMoves():
+            possibleMoves = self.getPossibleMoves()
+            for move in possibleMoves:
                 x, y = move
-                game.playAt((x, y))
-                game.whoPlay = next_player  # switch turn
-                eval, _ = game.minimax(game, depth - 1, alpha, beta, False)
-                game.undoLastMove()
-                game.whoPlay = current_player  # revert
-
-                if eval > max_check:
-                    max_check = eval
-                    top_move = move
-                alpha = max(alpha, eval)
-
-                if beta <= alpha:
-                    break
-
-            return max_check, top_move
+                self.playAt((x, y))
+                score = self.checkBoard(current_player)
+                eval, _ = self.minimax(self, depth - 1, alpha, beta, False)
+                self.undoLastMove()
 
         else:
             min_check = float("inf")
-            for move in game.getPossibleMoves():
+            possibleMoves = self.getPossibleMoves()
+            for move in possibleMoves:
                 x, y = move
-                game.playAt((x, y))
-                game.whoPlay = next_player  # switch turn
-                eval, _ = game.minimax(game, depth - 1, alpha, beta, True)
-                game.undoLastMove()
-                game.whoPlay = current_player  # revert
+                self.playAt((x, y))
+                score = self.checkBoard(current_player)
+                eval, _ = self.minimax(self, depth - 1, alpha, beta, True)
+                self.undoLastMove()
+        # If given depth is Zero we return the current game state and None as nothing will be evaluated
+        # if depth == 0 or game.isDone():
+        #     return (
+        #         # game.checkBoard(game.whoPlay),
+        #         None,
+        #     )  # Always evaluate from the AI's original perspective
 
-                if eval < min_check:
-                    min_check = eval
-                    top_move = move
-                beta = min(beta, eval)
+        # top_move = None
+        # current_player = game.whoPlay
+        # next_player = "p2" if current_player == "p1" else "p1"
 
-                if beta <= alpha:
-                    break
+        # if maxim:
+        #     max_check = float("-inf")
+        #     for move in game.getPossibleMoves():
+        #         x, y = move
+        #         game.playAt((x, y))
+        #         game.whoPlay = next_player  # switch turn
+        #         eval, _ = game.minimax(game, depth - 1, alpha, beta, False)
+        #         game.undoLastMove()
+        #         game.whoPlay = current_player  # revert
 
-            return min_check, top_move
+        #         if eval > max_check:
+        #             max_check = eval
+        #             top_move = move
+        #         alpha = max(alpha, eval)
+
+        #         if beta <= alpha:
+        #             break
+
+        #     return max_check, top_move
+
+        # else:
+        #     min_check = float("inf")
+        #     for move in game.getPossibleMoves():
+        #         x, y = move
+        #         game.playAt((x, y))
+        #         game.whoPlay = next_player  # switch turn
+        #         eval, _ = game.minimax(game, depth - 1, alpha, beta, True)
+        #         game.undoLastMove()
+        #         game.whoPlay = current_player  # revert
+
+        #         if eval < min_check:
+        #             min_check = eval
+        #             top_move = move
+        #         beta = min(beta, eval)
+
+        #         if beta <= alpha:
+        #             break
+
+        #     return min_check, top_move
 
     def getAImove(self):
         depth = self.getDifficulty()
         game_copy = deepcopy(self)
         game_copy.isAIgame = False
-        _, move = self.minimax(
-            game_copy, depth, alpha=float("-inf"), beta=float("inf"), maxim=True
+        _, move = game_copy.minimax(
+            depth, alpha=float("-inf"), beta=float("inf"), maxim=True
         )
         return move
 
