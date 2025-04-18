@@ -195,8 +195,6 @@ class Game:
             2: "CLOSED"
         }
         
-        scores = {}
-
         total_score = 0
         symbol = self.getSymbolFromPlayer(player)
         board = self.board
@@ -208,7 +206,7 @@ class Game:
             """We simply check if the current element we are working on is indeed inside of the grid"""
             return 0 <= x < width and 0 <= y < height
 
-        for direction_name, (dx, dy) in directions.items(): #we start the counter at one since we have placed a tile
+        for (dx, dy) in directions.values(): #we start the counter at one since we have placed a tile
             count = 1
             ends = 0
             score = 0
@@ -238,7 +236,70 @@ class Game:
             total_score += score
         
         return total_score
+
+    def check_blocks(self, player) -> int:
+        """This function will calculate the points awarded for the AI to block and therefore counter the player.
+        We will go from the last played move and see the alignment of the player and add up:
+        what kind of alignment we are breaking."""
+        if self.last_move is None:
+            return 0
         
+        total_score = 0
+        opp_symbol = self.getSymbolFromPlayer(2 if player == 1 else 1)
+        board = self.board
+        height = len(board)
+        width = len(board[0])
+        coord_x, coord_y = self.last_move
+
+        directions = {
+            "horizon": (1, 0),
+            "vertical": (0, 1),
+            "diago_down": (1, 1),
+            "diago_up": (1, -1)
+        }
+        
+        score_board = {
+            0: "SEMI",
+            1: "CLOSED",
+        }
+        
+        def inBounds(x, y):
+            """We simply check if the current element we are working on is indeed inside of the grid"""
+            return 0 <= x < width and 0 <= y < height
+        
+        for (dx, dy) in directions.values(): #we start the counter at one since we have placed a tile
+            count = 0
+            ends = 0
+            score = 0
+            
+            for dir in [-1, 1]:  #check both sides 
+                for i in range(1, 5):
+                    x = coord_x + dir * dx * i
+                    y = coord_y + dir * dy * i
+                    if not inBounds(x, y, width, height):
+                        ends += 1
+                        break
+                    if board[y][x] == opp_symbol: #if symbol is met then add 1 to count => alignment
+                        count += 1
+                    elif board[y][x] == ".": #break => the alignment is broken
+                        break
+                    else:
+                        ends += 1
+                        break
+                if count >= 1:
+                    if count >= 4:
+                        count = 4
+                    if ends == 2:
+                        score = codes.get(f"{player}_BLOCK_{count}_CLOSED", 0)
+                    elif ends == 1:
+                        score = codes.get(f"{player}_BLOCK_{count}_SEMI", 0)
+                    else:
+                        score = codes.get(f"{player}_BLOCK_{count}", 0)
+
+        total_score += score
+        
+        return total_score   
+
     def check_last_capture(self, player):
         score = 0
         nb_capture = 0
