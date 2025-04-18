@@ -173,7 +173,22 @@ class Game:
                         moves.append((x, y))
         return moves
 
+    def check_last_capture(self, player):
+        score = 0
+        nb_capture = 0
+        if len(self.history) > 0:
+            nb_capture = sum(1 for move in self.history[-1] if move["effect"] == "remove")
+            nb_piece = self.p1_piece if player == "J1" else self.p2_piece
+            index_start = (nb_piece - nb_capture) / 2
+            max_index = 4 #len(config.codes[f"{player}_C"]) - 1
+            score += sum(config.codes[f"{player}_C"][min(index_start + i, max_index)] for i in range(nb_capture / 2))
+        return score            
+
     def checkBoard(self, player):
+        pToJ = {
+            "p1": "J1",
+            "p2": "J2"
+        }
         opponent = "p1" if player == "p2" else "p2"
         symbol = self.getSymbolFromPlayer(player)
         opp_symbol = self.getSymbolFromPlayer(opponent)
@@ -184,9 +199,10 @@ class Game:
             # appelle des fonctions de check par rapport aux coords "self.last_move"
             score_alignments = self.check_alignments() # doit return [{"H": 4}, {"DM": 3}] arg1 :("H", "V", "DM", "DD") arg2: nb piece aligned
             score_block = self.check_blocks()
-            score_capture = self.check_capture() # doit return le score du total des captures par rapport au last move
+            score_capture = self.check_last_capture(pToJ[player]) # doit return le score du total des captures par rapport au last move
+            score_total = score_alignments + score_block + score_capture
             # coder le cumule du score
-
+        return score_total
 
 
         # else:
