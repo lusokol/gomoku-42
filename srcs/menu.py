@@ -128,6 +128,7 @@ def main():
 
     # === SETUP ECRAN ===
     infoObject = pygame.display.Info()
+    # screen, title_font, little_font = updateScreenSize(1280, 720, False)
     screen, title_font, little_font = updateScreenSize(
         infoObject.current_w, infoObject.current_h, True
     )

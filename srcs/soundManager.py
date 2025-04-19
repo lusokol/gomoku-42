@@ -1,13 +1,13 @@
 import pygame
 import random
-
+import config
 
 class SoundManager:
     def __init__(self):
         pygame.mixer.init()
         self.sounds = {}
-        self.sounds_volume = 5
-        self.music_volume = 5
+        self.sounds_volume = config.SOUND_VOLUME
+        self.music_volume = config.MUSIC_VOLUME
         self.music_loaded = False
         self.load_sound("clic", "sounds/clic.ogg")
         self.load_sound(

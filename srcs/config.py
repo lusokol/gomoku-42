@@ -15,6 +15,8 @@ COLOR_BUTTON_HOVER = (105, 52, 2)
 
 NOTIFICATION = {"message": None, "start_time": None, "duration": 2}  # secondes
 
+SOUND_VOLUME = 5 # [0:10]
+MUSIC_VOLUME = 5 # [0:10]
 sound_manager = SoundManager()
 
 # codes des differents coups avec leur score attribué
@@ -41,12 +43,12 @@ codes = {
     # === IA (J1) – Blocages sur J2 ===
     "J1_BLOCK_5": 999999,
     "J1_BLOCK_4_SEMI": 6000,
-    "J1_BLOCK_4_CLOSED": 9000,
-    "J1_BLOCK_3_SEMI": 3000,
+    "J1_BLOCK_4_CLOSED": 10000,
+    "J1_BLOCK_3_SEMI": 5000,
     "J1_BLOCK_3_CLOSED": 500,
     "J1_BLOCK_2_SEMI": 200,
     "J1_BLOCK_2_CLOSED": 50,
-    "J1_BLOCK_1": 10,
+    "J1_BLOCK_1": 20,
 
     # === IA (J1) – Captures ===
     "J1_C": [150, 500, 2000, 6000, 999999],  # Indexé par nombre de captures faites
@@ -66,16 +68,13 @@ codes = {
 
     # === Joueur (J2) – Blocages sur J1 ===
     "J2_BLOCK_5": 999999,
-    "J2_BLOCK_4_OPEN": 9000,
     "J2_BLOCK_4_SEMI": 6000,
-    "J2_BLOCK_4_CLOSED": 2000,
-    "J2_BLOCK_3_OPEN": 4000,
-    "J2_BLOCK_3_SEMI": 2000,
+    "J2_BLOCK_4_CLOSED": 10000,
+    "J2_BLOCK_3_SEMI": 5000,
     "J2_BLOCK_3_CLOSED": 500,
-    "J2_BLOCK_2_OPEN": 500,
     "J2_BLOCK_2_SEMI": 200,
     "J2_BLOCK_2_CLOSED": 50,
-    "J2_BLOCK_1": 10,
+    "J2_BLOCK_1": 20,
 
     # === Joueur (J2) – Captures ===
     "J2_C": [150, 500, 2000, 6000, 999999]  # Indexé par nombre de captures faites
