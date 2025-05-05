@@ -148,28 +148,32 @@ class Game:
             print(self.board[i])
 
     def getPossibleMoves(self):
-        return [
-            (x, y)
-            for y in range(config.GRID_SIZE)
-            for x in range(config.GRID_SIZE)
-            if self.board[x][y] == "."
-        ]
-        radius = 2
-        moves = []
+        """getPossiblemoves() will check the board only once and will add to the possible move set()
+        the empty tiles found in the radius (i put it at 4 but of ocurse we can tweak that to our convenience).
+        When we encoutner a tile (no matter the player color) and we check from there around the radius,
+        we add it to the set as we know it won't be repeatung places in the boafrd anyways,
+        and if there are repeating then they will be replaced as per the data type of the set();
+        If we do not find anything, aka the board is empty, then we return the center psoition of the board"""
+        radius = 4
+        possible_moves = set()
 
-        if self.last_move is None:
-            # First move: return center
-            size_x, size_y = len(self.board), len(self.board[0])
-            return [(size_x // 2, size_y // 2)]
+        for x in range(config.GRID_SIZE):
+            for y in range(config.GRID_SIZE):
+                if self.board[x][y] != ".":
+                    for dx in range(-radius, radius + 1):
+                        for dy in range(-radius, radius + 1):
+                            nx, ny = x + dx, y + dy
+                            if 0 <= nx < config.GRID_SIZE and 0 <= ny < config.GRID_SIZE:
+                                if self.board[nx][ny] == ".":
+                                    possible_moves.add((nx, ny))
 
-        x0, y0 = self.last_move
-        for dx in range(-radius, radius + 1):
-            for dy in range(-radius, radius + 1):
-                x, y = x0 + dx, y0 + dy
-                if 0 <= x < len(self.board) and 0 <= y < len(self.board[0]):
-                    if self.board[x][y] == ".":
-                        moves.append((x, y))
-        return moves
+        if not possible_moves:
+            # Here if we cannot find any tile, then we just return the center
+            center = config.GRID_SIZE // 2
+            return [(center, center)]
+
+        return list(possible_moves)
+
     
     def check_alignments(self, player, player_code) -> int:
         """
