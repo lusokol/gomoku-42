@@ -358,7 +358,6 @@ class Game:
         # Table of risk scores depending on how many captures the opponent has made
         capture_risk_scores = [150, 500, 2000, 6000, 999999]
 
-        # Clamp to the valid range of the table
         if opponent_captures >= len(capture_risk_scores):
             score_from_table = capture_risk_scores[-1]
         else:
