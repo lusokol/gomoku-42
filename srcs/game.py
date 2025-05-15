@@ -404,7 +404,6 @@ class Game:
                                 risk_score += score_from_table
                     except IndexError:
                         continue
-
         return risk_score
 
     def get_capture_count(self, player):
@@ -441,7 +440,7 @@ class Game:
             placement_score = self.calc_placement_score()
             risk_capture = self.evaluate_capture_risk(self.board, symbol, opponent_captures=self.get_capture_count(opponent))
             
-            score_total = score_alignments + score_block + score_capture + placement_score + risk_capture
+            score_total = score_alignments + score_block + score_capture + placement_score - risk_capture
             # coder le cumule du score
         return score_total
 
