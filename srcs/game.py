@@ -346,11 +346,74 @@ class Game:
             nb_capture = sum(1 for move in histo if move["effect"] == "remove")
             nb_piece = self.p1_piece if player == "J1" else self.p2_piece
             index_start = (nb_piece - nb_capture) // 2
-            max_index = 4 #len(config.codes[f"{player}_C"]) - 1
+            max_index = 4
             for i in range(int(nb_capture / 2)):
                 score += sum(config.codes[f"{player}_C"][min(index_start + i, max_index)]for i in range(nb_capture // 2))
-        return score            
+        return score       
+    
+    def evaluate_capture_risk(self, board, symbol, opponent_captures):
+        opponent = "1" if symbol == "2" else "2"
+        risk_score = 0
 
+        # Table of risk scores depending on how many captures the opponent has made
+        capture_risk_scores = [150, 500, 2000, 6000, 999999]
+
+        # Clamp to the valid range of the table
+        if opponent_captures >= len(capture_risk_scores):
+            score_from_table = capture_risk_scores[-1]
+        else:
+            score_from_table = capture_risk_scores[opponent_captures]
+
+        directions = [
+            (1, 0),
+            (0, 1),
+            (1, 1),
+            (1, -1),
+        ]
+
+        for r in range(len(board)):
+            for c in range(len(board[0])):
+                if board[r][c] != symbol:
+                    continue
+
+                for dr, dc in directions:
+                    try:
+                        #Player - AI - AI - empty
+                        r0, c0 = r - dr, c - dc
+                        r1, c1 = r, c
+                        r2, c2 = r + dr, c + dc
+                        r3, c3 = r + 2*dr, c + 2*dc
+
+                        if all(0 <= x < len(board) and 0 <= y < len(board[0])
+                            for x, y in [(r0, c0), (r2, c2), (r3, c3)]):
+                            if (board[r0][c0] == opponent and
+                                board[r2][c2] == symbol and
+                                board[r3][c3] == "."):
+                                risk_score += score_from_table
+
+                        # empty - AI - AI - Player
+                        r0, c0 = r - 2*dr, c - 2*dc
+                        r1, c1 = r - dr, c - dc
+                        r2, c2 = r, c
+                        r3, c3 = r + dr, c + dc
+
+                        if all(0 <= x < len(board) and 0 <= y < len(board[0])
+                            for x, y in [(r0, c0), (r1, c1), (r3, c3)]):
+                            if (board[r0][c0] == "." and
+                                board[r1][c1] == symbol and
+                                board[r3][c3] == opponent):
+                                risk_score += score_from_table
+                    except IndexError:
+                        continue
+
+        return risk_score
+
+    def get_capture_count(self, player):
+        if player == "p1":
+            return self.p1_piece
+        else:
+            return self.p2_piece
+     
     def calc_placement_score(self):
         x, y = self.last_move
         center = config.GRID_SIZE // 2
@@ -359,6 +422,7 @@ class Game:
         # chaque moitié (X et Y) compte pour 100 pts
         return int(((center - dx) + (center - dy)) / center * (config.codes["CENTER"] / 2))
 
+### ADDED Capture check
     def checkBoard(self, player):
         pToJ = {
             "p1": "J1",
@@ -376,8 +440,9 @@ class Game:
             score_block = self.check_blocks(player, pToJ[player])
             score_capture = self.check_last_capture(pToJ[player])
             placement_score = self.calc_placement_score()
+            risk_capture = self.evaluate_capture_risk(self.board, symbol, opponent_captures=self.get_capture_count(opponent))
             
-            score_total = score_alignments + score_block + score_capture + placement_score
+            score_total = score_alignments + score_block + score_capture + placement_score + risk_capture
             # coder le cumule du score
         return score_total
 
