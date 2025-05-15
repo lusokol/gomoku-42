@@ -438,7 +438,7 @@ class Game:
             score_block = self.check_blocks(player, pToJ[player])
             score_capture = self.check_last_capture(pToJ[player])
             placement_score = self.calc_placement_score()
-            risk_capture = self.evaluate_capture_risk(self.board, symbol, opponent_captures=self.get_capture_count(opponent))
+            risk_capture = self.evaluate_capture_risk(self.board, symbol, opponent_captures=self.get_capture_count(opponent) // 2)
             
             score_total = score_alignments + score_block + score_capture + placement_score - risk_capture
             # coder le cumule du score
