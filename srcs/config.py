@@ -42,7 +42,7 @@ codes = {
 
     # === IA (J1) – Blocages sur J2 ===
     "J1_BLOCK_5": 999999,
-    "J1_BLOCK_4_SEMI": 6000,
+    "J1_BLOCK_4_SEMI": 10000,
     "J1_BLOCK_4_CLOSED": 10000,
     "J1_BLOCK_3_SEMI": 5000,
     "J1_BLOCK_3_CLOSED": 500,
