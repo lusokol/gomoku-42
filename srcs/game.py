@@ -444,7 +444,7 @@ class Game:
             # coder le cumule du score
         return score_total
 
-    def minimax(self, depth, maxim, current_score=0):
+    def minimax(self, depth, maxim, alpha=float('-inf'), beta=float('inf'), current_score=0):
         if depth == 0 or self.isDone():
             return None, current_score
 
@@ -478,12 +478,17 @@ class Game:
                 self.playAt(move)
                 move_score = self.checkBoard(current_player)  # score du coup joué
                 board_scores[move[0]][move[1]] = f"{move_score:4}"
-                _, total_score = self.minimax(depth - 1, False, current_score + move_score)
+                _, total_score = self.minimax(depth - 1, False, alpha, beta, current_score + move_score)
                 self.undoLastMove()
 
                 if total_score > best_score:
                     best_score = total_score
                     best_move = move
+                
+                alpha = max(alpha, best_score)
+                if beta <= alpha:
+                    break
+                
             for row in board_scores:
                 print(" ".join(f"{str(cell).strip():>4}" for cell in row))  # Rendre chaque cellule de 6 espaces
             print("\n")
@@ -495,12 +500,17 @@ class Game:
                 self.playAt(move)
                 move_score = self.checkBoard(current_player)  # score du coup joué
                 board_scores[move[0]][move[1]] = f"{move_score:4}"
-                _, total_score = self.minimax(depth - 1, True, current_score - move_score)
+                _, total_score = self.minimax(depth - 1, True, alpha, beta, current_score - move_score)
                 self.undoLastMove()
 
                 if total_score < best_score:
                     best_score = total_score
                     best_move = move
+                    
+                beta = min(beta, best_score)
+                if beta <= alpha:
+                    break
+
             for row in board_scores:
                 print(" ".join(f"{str(cell).strip():>4}" for cell in row))  # Rendre chaque cellule de 6 espaces
             print("\n")
