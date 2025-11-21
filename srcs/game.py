@@ -100,7 +100,7 @@ class Game:
         return {
             "FACILE": 1,
             "MOYEN": 2,
-            "IMPOSSIBLE": 4,
+            "IMPOSSIBLE": 3,
         }.get(self.AIdifficulty, 1)
 
     def makeMove(self, x, y, player):
@@ -210,21 +210,15 @@ class Game:
 
     def getPossibleMoves(self):
         """
-        Retourne les coups possibles, en priorisant les coups critiques.
-        Rayon réduit à 2 pour accélérer la recherche.
+        Retourne les coups possibles dans un rayon de 2.
+        NE PAS appeler getCriticalMoves() ici car c'est trop lourd pour minimax.
         """
-        # D'abord vérifier les coups critiques
-        critical = self.getCriticalMoves()
-        if critical:
-            return critical
-
-        # Sinon, retourner les coups dans un rayon de 2
         return self.getPossibleMovesBase(radius=2)
 
     def quickEvaluate(self, player, move):
         """
-        Évaluation rapide d'un coup pour le tri (move ordering).
-        Plus rapide que checkBoard() car ne calcule pas tout.
+        Évaluation ULTRA-RAPIDE d'un coup pour le tri (move ordering).
+        Juste compter les pions autour, pas de checkAlignments.
         """
         score = 0
         symbol = self.getSymbolFromPlayer(player)
@@ -232,76 +226,73 @@ class Game:
         opp_symbol = self.getSymbolFromPlayer(opponent)
         x, y = move
 
-        # 1. Vérifier victoire immédiate (priorité absolue)
-        if self.checkAlignments(symbol, move):
-            return 10000000
-
-        # 2. Vérifier blocage de victoire adverse
         directions = [(1, 0), (0, 1), (1, 1), (1, -1)]
-        for dx, dy in directions:
-            count = 0
-            # Compter dans les deux directions
-            for step in [-1, 1]:
-                r, c = x, y
-                for _ in range(4):
-                    r += step * dx
-                    c += step * dy
-                    if 0 <= r < config.GRID_SIZE and 0 <= c < config.GRID_SIZE:
-                        if self.board[r][c] == opp_symbol:
-                            count += 1
-                        else:
-                            break
-                    else:
-                        break
-            if count >= 4:
-                return 9000000  # Blocage critique
 
-        # 3. Compter les alignements simples
+        # Compter rapidement les alignements
         for dx, dy in directions:
-            left_count = 0
-            right_count = 0
+            # Compter pions du joueur
+            my_count = 0
+            opp_count = 0
             open_ends = 0
 
-            # Compter à gauche
+            # Direction négative
             for i in range(1, 5):
                 nx, ny = x - dx * i, y - dy * i
                 if 0 <= nx < config.GRID_SIZE and 0 <= ny < config.GRID_SIZE:
                     if self.board[nx][ny] == symbol:
-                        left_count += 1
+                        my_count += 1
                     elif self.board[nx][ny] == ".":
                         open_ends += 1
+                        break
+                    elif self.board[nx][ny] == opp_symbol:
+                        opp_count += 1
                         break
                     else:
                         break
                 else:
                     break
 
-            # Compter à droite
+            # Direction positive
             for i in range(1, 5):
                 nx, ny = x + dx * i, y + dy * i
                 if 0 <= nx < config.GRID_SIZE and 0 <= ny < config.GRID_SIZE:
                     if self.board[nx][ny] == symbol:
-                        right_count += 1
+                        my_count += 1
                     elif self.board[nx][ny] == ".":
                         open_ends += 1
+                        break
+                    elif self.board[nx][ny] == opp_symbol:
+                        opp_count += 1
                         break
                     else:
                         break
                 else:
                     break
 
-            total = 1 + left_count + right_count
-            if total >= 4:
-                score += 100000 if open_ends >= 1 else 15000
-            elif total == 3:
-                score += 12000 if open_ends >= 1 else 3000
-            elif total == 2:
-                score += 800 if open_ends >= 1 else 300
+            total_mine = 1 + my_count
 
-        # 4. Bonus pour position centrale
+            # Victoire immédiate
+            if total_mine >= 5:
+                return 10000000
+
+            # Blocage critique (4 adverses)
+            if opp_count >= 4:
+                score += 9000000
+
+            # Scoring simplifié
+            if total_mine == 4:
+                score += 100000 if open_ends >= 1 else 15000
+            elif total_mine == 3:
+                score += 12000 if open_ends >= 1 else 3000
+            elif total_mine == 2:
+                score += 800 if open_ends >= 1 else 300
+            else:
+                score += 50
+
+        # Bonus central minime
         center = config.GRID_SIZE // 2
-        dist_center = abs(x - center) + abs(y - center)
-        score += max(0, 50 - dist_center * 5)
+        dist = abs(x - center) + abs(y - center)
+        score += max(0, 25 - dist * 3)
 
         return score
 
