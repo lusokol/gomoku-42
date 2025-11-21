@@ -99,8 +99,8 @@ class Game:
     def getDifficulty(self):
         return {
             "FACILE": 2,
-            "MOYEN": 4,
-            "IMPOSSIBLE": 6,
+            "MOYEN": 5,
+            "IMPOSSIBLE": 7,
         }.get(self.AIdifficulty, 1)
 
     def makeMove(self, x, y, player):
@@ -708,24 +708,20 @@ class Game:
         # Récupérer les coups possibles
         possible_moves = self.getPossibleMoves()
 
-        # Au niveau racine UNIQUEMENT : détecter les coups critiques
+        # Au niveau racine : explorer largement, aux niveaux inférieurs : limiter drastiquement
         if max_depth and depth == max_depth:
+            # Niveau racine : TOUJOURS trier mais ne PAS limiter (explorer tous les coups)
             critical_moves = self.getCriticalMoves()
             if critical_moves:
                 # Si coups critiques trouvés, explorer SEULEMENT ceux-là
                 possible_moves = critical_moves
             elif len(possible_moves) > 1:
-                # Limitation adaptative selon la phase de jeu
-                # Début de partie (peu de coups) : explorer plus
-                # Milieu/fin de partie (beaucoup de coups) : limiter drastiquement
-                if len(possible_moves) <= 20:
-                    limit = 15  # Début de partie
-                elif len(possible_moves) <= 40:
-                    limit = 12  # Milieu de partie
-                else:
-                    limit = 10  # Fin de partie (beaucoup de coups)
-
-                possible_moves = self.orderMoves(possible_moves, current_player, limit=limit)
+                # Trier SANS limiter : explore TOUS les coups au niveau racine
+                possible_moves = self.orderMoves(possible_moves, current_player, limit=999)
+        elif depth < max_depth and len(possible_moves) > 1:
+            # Niveaux inférieurs : limitation STRICTE pour la vitesse
+            limit = 8 if len(possible_moves) > 40 else 10
+            possible_moves = self.orderMoves(possible_moves, current_player, limit=limit)
 
         if maxim:
             best_score = float("-inf")
@@ -782,7 +778,7 @@ class Game:
         Garantit un coup même si le temps est écoulé.
         """
         base_depth = self.getDifficulty()
-        max_time = 2.5  # 2.5s pour permettre profondeur 6
+        max_time = 5.0  # 5s pour profondeur 7 (acceptable pour jeu au tour par tour)
         start_time = time.time()
 
         best_move = None
@@ -803,13 +799,18 @@ class Game:
                 break
 
             try:
+                depth_start = time.time()
                 move, score = game_copy.minimax(depth, maxim=True, max_depth=depth, start_time=start_time, timeout=max_time)
+                depth_time = time.time() - depth_start
+
                 if move:
                     best_move = move
                     best_score = score
+                    print(f"  -> Profondeur {depth} terminée en {depth_time:.2f}s, score={score}")
 
                     # Si on trouve un coup gagnant, pas besoin de chercher plus
                     if score >= 10000000:
+                        print(f"  -> Coup gagnant trouvé!")
                         break
 
             except Exception as e:
@@ -821,8 +822,10 @@ class Game:
         elapsed = time.time() - start_time
         actual_depth = depth if elapsed <= max_time else depth - 1
         nb_coups = len(self.getPossibleMoves())
-        nb_coups_explores = len(game_copy.getCriticalMoves()) if game_copy.getCriticalMoves() else min(nb_coups, 15)
-        print(f"IA: prof={actual_depth}, temps={elapsed:.2f}s, coups={nb_coups}, explores={nb_coups_explores}, score={best_score}")
+        critical = game_copy.getCriticalMoves()
+        nb_coups_explores = len(critical) if critical else nb_coups
+
+        print(f"IA FINALE: prof={actual_depth}, temps={elapsed:.2f}s, coups_legaux={nb_coups}, explores_racine={nb_coups_explores}, score={best_score}")
 
         return best_move
 
