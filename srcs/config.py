@@ -25,57 +25,63 @@ sound_manager = SoundManager()
 
 codes = {
     # Value from 0 to CENTER about how center is you piece
-    "CENTER": 200,
+    "CENTER": 50,  # Réduit car moins important que les menaces
 
     # === IA (J1) – Alignements ===
-    "J1_5": 999999,
-    "J1_4_OPEN": 9000,
-    "J1_4_SEMI": 6000,
-    "J1_4_CLOSED": 2000,
-    "J1_3_OPEN": 4000,
-    "J1_3_SEMI": 2000,
-    "J1_3_CLOSED": 500,
-    "J1_2_OPEN": 500,
-    "J1_2_SEMI": 200,
-    "J1_2_CLOSED": 50,
-    "J1_1": 10,
+    "J1_5": 10000000,  # Victoire immédiate
+    "J1_4_OPEN": 100000,  # Menace de victoire critique (gagne au prochain coup)
+    "J1_4_SEMI": 15000,  # Menace forte mais bloquable d'un côté
+    "J1_4_CLOSED": 3000,  # Moins prioritaire
+    "J1_3_OPEN": 12000,  # Peut devenir 4_OPEN ou créer un fork
+    "J1_3_SEMI": 3000,  # Développement intéressant
+    "J1_3_CLOSED": 800,  # Peu utile
+    "J1_2_OPEN": 800,  # Début de développement
+    "J1_2_SEMI": 300,
+    "J1_2_CLOSED": 100,
+    "J1_1": 20,
 
     # === IA (J1) – Blocages sur J2 ===
-    "J1_BLOCK_5": 999999,
-    "J1_BLOCK_4_SEMI": 10000,
-    "J1_BLOCK_4_CLOSED": 10000,
-    "J1_BLOCK_3_SEMI": 5000,
-    "J1_BLOCK_3_CLOSED": 500,
-    "J1_BLOCK_2_SEMI": 200,
-    "J1_BLOCK_2_CLOSED": 50,
-    "J1_BLOCK_1": 20,
+    "J1_BLOCK_5": 10000000,  # Bloquer une victoire
+    "J1_BLOCK_4_OPEN": 90000,  # CRITIQUE : bloquer 4 ouverts adverses
+    "J1_BLOCK_4_SEMI": 18000,  # Très important
+    "J1_BLOCK_4_CLOSED": 18000,
+    "J1_BLOCK_3_OPEN": 10000,  # Important car peut devenir dangereux
+    "J1_BLOCK_3_SEMI": 6000,
+    "J1_BLOCK_3_CLOSED": 800,
+    "J1_BLOCK_2_OPEN": 400,
+    "J1_BLOCK_2_SEMI": 250,
+    "J1_BLOCK_2_CLOSED": 80,
+    "J1_BLOCK_1": 30,
 
     # === IA (J1) – Captures ===
-    "J1_C": [150, 500, 2000, 6000, 999999],  # Indexé par nombre de captures faites
+    "J1_C": [200, 1000, 5000, 20000, 10000000],  # Progression agressive
 
     # === Joueur (J2) – Alignements ===
-    "J2_5": 999999,
-    "J2_4_OPEN": 9000,
-    "J2_4_SEMI": 6000,
-    "J2_4_CLOSED": 2000,
-    "J2_3_OPEN": 4000,
-    "J2_3_SEMI": 2000,
-    "J2_3_CLOSED": 500,
-    "J2_2_OPEN": 500,
-    "J2_2_SEMI": 200,
-    "J2_2_CLOSED": 50,
-    "J2_1": 10,
+    "J2_5": 10000000,
+    "J2_4_OPEN": 100000,
+    "J2_4_SEMI": 15000,
+    "J2_4_CLOSED": 3000,
+    "J2_3_OPEN": 12000,
+    "J2_3_SEMI": 3000,
+    "J2_3_CLOSED": 800,
+    "J2_2_OPEN": 800,
+    "J2_2_SEMI": 300,
+    "J2_2_CLOSED": 100,
+    "J2_1": 20,
 
     # === Joueur (J2) – Blocages sur J1 ===
-    "J2_BLOCK_5": 999999,
-    "J2_BLOCK_4_SEMI": 6000,
-    "J2_BLOCK_4_CLOSED": 10000,
-    "J2_BLOCK_3_SEMI": 5000,
-    "J2_BLOCK_3_CLOSED": 500,
-    "J2_BLOCK_2_SEMI": 200,
-    "J2_BLOCK_2_CLOSED": 50,
-    "J2_BLOCK_1": 20,
+    "J2_BLOCK_5": 10000000,
+    "J2_BLOCK_4_OPEN": 90000,
+    "J2_BLOCK_4_SEMI": 18000,
+    "J2_BLOCK_4_CLOSED": 18000,
+    "J2_BLOCK_3_OPEN": 10000,
+    "J2_BLOCK_3_SEMI": 6000,
+    "J2_BLOCK_3_CLOSED": 800,
+    "J2_BLOCK_2_OPEN": 400,
+    "J2_BLOCK_2_SEMI": 250,
+    "J2_BLOCK_2_CLOSED": 80,
+    "J2_BLOCK_1": 30,
 
     # === Joueur (J2) – Captures ===
-    "J2_C": [150, 500, 2000, 6000, 999999]  # Indexé par nombre de captures faites
+    "J2_C": [200, 1000, 5000, 20000, 10000000]
 }

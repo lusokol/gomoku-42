@@ -1,6 +1,7 @@
 import random
 import pygame
 import config
+import time
 from config import codes
 from copy import deepcopy
 from utile import placeButtonAtPercent, draw_text_in_rect, show_notification
@@ -98,8 +99,8 @@ class Game:
     def getDifficulty(self):
         return {
             "FACILE": 1,
-            "MOYEN": 2,
-            "IMPOSSIBLE": 3,
+            "MOYEN": 3,
+            "IMPOSSIBLE": 5,
         }.get(self.AIdifficulty, 1)
 
     def makeMove(self, x, y, player):
@@ -147,14 +148,48 @@ class Game:
         for i in range(19):
             print(self.board[i])
 
-    def getPossibleMoves(self):
-        """getPossiblemoves() will check the board only once and will add to the possible move set()
-        the empty tiles found in the radius (i put it at 4 but of ocurse we can tweak that to our convenience).
-        When we encoutner a tile (no matter the player color) and we check from there around the radius,
-        we add it to the set as we know it won't be repeatung places in the boafrd anyways,
-        and if there are repeating then they will be replaced as per the data type of the set();
-        If we do not find anything, aka the board is empty, then we return the center psoition of the board"""
-        radius = 4
+    def getCriticalMoves(self):
+        """
+        Détecte les coups critiques (victoires immédiates ou blocages obligatoires).
+        Retourne une liste vide si aucun coup critique n'est trouvé.
+        """
+        critical_moves = []
+        current_player = self.whoPlay
+        opponent = "p2" if current_player == "p1" else "p1"
+
+        # Récupérer tous les coups possibles dans un rayon réduit
+        possible_moves = self.getPossibleMovesBase(radius=2)
+
+        for move in possible_moves:
+            # Sauvegarder l'état
+            saved_p1_piece = self.p1_piece
+            saved_p2_piece = self.p2_piece
+            saved_turn = self.turn
+
+            # Vérifier victoire immédiate pour l'IA
+            symbol = self.getSymbolFromPlayer(current_player)
+            self.board[move[0]][move[1]] = symbol
+            if self.checkAlignments(symbol, move):
+                self.board[move[0]][move[1]] = "."
+                return [move]  # Victoire immédiate : retourne immédiatement ce coup
+            self.board[move[0]][move[1]] = "."
+
+            # Vérifier si l'adversaire peut gagner au prochain coup (blocage obligatoire)
+            opp_symbol = self.getSymbolFromPlayer(opponent)
+            self.board[move[0]][move[1]] = opp_symbol
+            if self.checkAlignments(opp_symbol, move):
+                critical_moves.append(move)  # Blocage critique
+            self.board[move[0]][move[1]] = "."
+
+            # Restaurer l'état
+            self.p1_piece = saved_p1_piece
+            self.p2_piece = saved_p2_piece
+            self.turn = saved_turn
+
+        return critical_moves
+
+    def getPossibleMovesBase(self, radius=2):
+        """Version de base de getPossibleMoves avec rayon configurable."""
         possible_moves = set()
 
         for x in range(config.GRID_SIZE):
@@ -168,13 +203,204 @@ class Game:
                                     possible_moves.add((nx, ny))
 
         if not possible_moves:
-            # Here if we cannot find any tile, then we just return the center
             center = config.GRID_SIZE // 2
             return [(center, center)]
 
         return list(possible_moves)
 
-    
+    def getPossibleMoves(self):
+        """
+        Retourne les coups possibles, en priorisant les coups critiques.
+        Rayon réduit à 2 pour accélérer la recherche.
+        """
+        # D'abord vérifier les coups critiques
+        critical = self.getCriticalMoves()
+        if critical:
+            return critical
+
+        # Sinon, retourner les coups dans un rayon de 2
+        return self.getPossibleMovesBase(radius=2)
+
+    def quickEvaluate(self, player, move):
+        """
+        Évaluation rapide d'un coup pour le tri (move ordering).
+        Plus rapide que checkBoard() car ne calcule pas tout.
+        """
+        score = 0
+        symbol = self.getSymbolFromPlayer(player)
+        opponent = "p1" if player == "p2" else "p2"
+        opp_symbol = self.getSymbolFromPlayer(opponent)
+        x, y = move
+
+        # 1. Vérifier victoire immédiate (priorité absolue)
+        if self.checkAlignments(symbol, move):
+            return 10000000
+
+        # 2. Vérifier blocage de victoire adverse
+        directions = [(1, 0), (0, 1), (1, 1), (1, -1)]
+        for dx, dy in directions:
+            count = 0
+            # Compter dans les deux directions
+            for step in [-1, 1]:
+                r, c = x, y
+                for _ in range(4):
+                    r += step * dx
+                    c += step * dy
+                    if 0 <= r < config.GRID_SIZE and 0 <= c < config.GRID_SIZE:
+                        if self.board[r][c] == opp_symbol:
+                            count += 1
+                        else:
+                            break
+                    else:
+                        break
+            if count >= 4:
+                return 9000000  # Blocage critique
+
+        # 3. Compter les alignements simples
+        for dx, dy in directions:
+            left_count = 0
+            right_count = 0
+            open_ends = 0
+
+            # Compter à gauche
+            for i in range(1, 5):
+                nx, ny = x - dx * i, y - dy * i
+                if 0 <= nx < config.GRID_SIZE and 0 <= ny < config.GRID_SIZE:
+                    if self.board[nx][ny] == symbol:
+                        left_count += 1
+                    elif self.board[nx][ny] == ".":
+                        open_ends += 1
+                        break
+                    else:
+                        break
+                else:
+                    break
+
+            # Compter à droite
+            for i in range(1, 5):
+                nx, ny = x + dx * i, y + dy * i
+                if 0 <= nx < config.GRID_SIZE and 0 <= ny < config.GRID_SIZE:
+                    if self.board[nx][ny] == symbol:
+                        right_count += 1
+                    elif self.board[nx][ny] == ".":
+                        open_ends += 1
+                        break
+                    else:
+                        break
+                else:
+                    break
+
+            total = 1 + left_count + right_count
+            if total >= 4:
+                score += 100000 if open_ends >= 1 else 15000
+            elif total == 3:
+                score += 12000 if open_ends >= 1 else 3000
+            elif total == 2:
+                score += 800 if open_ends >= 1 else 300
+
+        # 4. Bonus pour position centrale
+        center = config.GRID_SIZE // 2
+        dist_center = abs(x - center) + abs(y - center)
+        score += max(0, 50 - dist_center * 5)
+
+        return score
+
+    def orderMoves(self, moves, player):
+        """
+        Trie les coups par potentiel (meilleurs d'abord) pour optimiser l'élagage alpha-beta.
+        C'est l'optimisation la plus importante pour la vitesse.
+        """
+        scored_moves = []
+
+        for move in moves:
+            # Simulation rapide du coup
+            old_last_move = self.last_move
+            self.last_move = move
+            self.board[move[0]][move[1]] = self.getSymbolFromPlayer(player)
+
+            # Évaluation rapide
+            score = self.quickEvaluate(player, move)
+
+            # Bonus pour fork (menace multiple)
+            if self.detectFork(player, move):
+                score += 30000
+
+            # Annulation
+            self.board[move[0]][move[1]] = "."
+            self.last_move = old_last_move
+
+            scored_moves.append((score, move))
+
+        # Tri décroissant : meilleurs coups en premier
+        scored_moves.sort(reverse=True, key=lambda x: x[0])
+        return [move for _, move in scored_moves]
+
+    def isThreat(self, player, pos, dx, dy):
+        """
+        Vérifie si une direction contient une menace de victoire.
+        Une menace = 4 alignés (gagne au prochain coup) OU 3 alignés ouverts des deux côtés.
+        """
+        symbol = self.getSymbolFromPlayer(player)
+        x, y = pos
+
+        left_count = 0
+        right_count = 0
+        left_open = False
+        right_open = False
+
+        # Compter à gauche
+        for i in range(1, 5):
+            nx, ny = x - dx * i, y - dy * i
+            if 0 <= nx < config.GRID_SIZE and 0 <= ny < config.GRID_SIZE:
+                if self.board[nx][ny] == symbol:
+                    left_count += 1
+                elif self.board[nx][ny] == ".":
+                    left_open = True
+                    break
+                else:
+                    break
+            else:
+                break
+
+        # Compter à droite
+        for i in range(1, 5):
+            nx, ny = x + dx * i, y + dy * i
+            if 0 <= nx < config.GRID_SIZE and 0 <= ny < config.GRID_SIZE:
+                if self.board[nx][ny] == symbol:
+                    right_count += 1
+                elif self.board[nx][ny] == ".":
+                    right_open = True
+                    break
+                else:
+                    break
+            else:
+                break
+
+        total = 1 + left_count + right_count
+
+        # Menace si : 4 alignés (victoire au prochain coup) OU 3 alignés ouverts
+        if total >= 4:
+            return True
+        if total == 3 and left_open and right_open:
+            return True
+
+        return False
+
+    def detectFork(self, player, move):
+        """
+        Détecte si un coup crée 2+ menaces simultanées (fork).
+        Un fork est très puissant car l'adversaire ne peut bloquer qu'une seule menace.
+        """
+        threats = 0
+        directions = [(1, 0), (0, 1), (1, 1), (1, -1)]
+
+        for dx, dy in directions:
+            if self.isThreat(player, move, dx, dy):
+                threats += 1
+
+        return threats >= 2
+
+
     def check_alignments(self, player, player_code) -> int:
         """
         check_alignments is a helper function for our great check_board function.
@@ -292,7 +518,7 @@ class Game:
         for (dx, dy) in directions.values():
             left_count = 0
             right_count = 0
-            ends = 1
+            ends = 0  # Commence à 0 pour détecter les blocages OPEN
 
             # Check left direction (-dx, -dy)
             for i in range(1, 5):
@@ -327,9 +553,9 @@ class Game:
             count = left_count + right_count
 
             if count >= 5:
-                score = codes.get(f"{player_code}_BLOCK_5", 999999)
-            elif count == 1:
-                score = codes.get(f"{player_code}_BLOCK_1", 0)
+                score = codes.get(f"{player_code}_BLOCK_5", 10000000)
+            elif count == 0:
+                score = 0  # Pas d'alignement à bloquer
             else:
                 closure = score_board.get(ends, "CLOSED")
                 score = codes.get(f"{player_code}_BLOCK_{count}_{closure}", 0)
@@ -452,76 +678,104 @@ class Game:
         current_player = self.whoPlay
         opponent = "p2" if current_player == "p1" else "p1"
 
+        # Récupérer les coups possibles
         possible_moves = self.getPossibleMoves()
 
-        RED = "(p1)"   # Rouge pour joueur 1
-        BLUE = "(p2)"  # Bleu pour joueur 2
+        # Trier les coups pour optimiser l'élagage alpha-beta (sauf si c'est déjà un coup critique unique)
+        if len(possible_moves) > 1:
+            possible_moves = self.orderMoves(possible_moves, current_player)
 
-        def get_colored_symbol(val):
-            if val == ".":
-                return " . "  # Représente un espace vide
-            elif val == "1":
-                return f"{RED}"  # Rouge pour joueur 1
-            elif val == "2":
-                return f"{BLUE}"  # Bleu pour joueur 2
-            else:
-                return " ? "  # Pour une valeur inconnue
-
-
-        board_scores = [
-            [get_colored_symbol(self.board[y][x]) for x in range(config.GRID_SIZE)]
-            for y in range(config.GRID_SIZE)
-        ]
         if maxim:
             best_score = float("-inf")
             for move in possible_moves:
                 self.playAt(move)
-                move_score = self.checkBoard(current_player)  # score du coup joué
-                board_scores[move[0]][move[1]] = f"{move_score:4}"
+                move_score = self.checkBoard(current_player)
+
+                # Cutoff précoce : si on trouve un coup gagnant, on retourne immédiatement
+                if move_score >= 10000000:
+                    self.undoLastMove()
+                    return move, move_score
+
                 _, total_score = self.minimax(depth - 1, False, alpha, beta, current_score + move_score)
                 self.undoLastMove()
 
                 if total_score > best_score:
                     best_score = total_score
                     best_move = move
-                
+
                 alpha = max(alpha, best_score)
                 if beta <= alpha:
-                    break
-                
-            for row in board_scores:
-                print(" ".join(f"{str(cell).strip():>4}" for cell in row))  # Rendre chaque cellule de 6 espaces
-            print("\n")
+                    break  # Élagage alpha-beta
+
             return best_move, best_score
 
         else:
             best_score = float("inf")
             for move in possible_moves:
                 self.playAt(move)
-                move_score = self.checkBoard(current_player)  # score du coup joué
-                board_scores[move[0]][move[1]] = f"{move_score:4}"
+                move_score = self.checkBoard(current_player)
+
+                # Cutoff précoce pour le minimiseur aussi
+                if move_score <= -10000000:
+                    self.undoLastMove()
+                    return move, move_score
+
                 _, total_score = self.minimax(depth - 1, True, alpha, beta, current_score - move_score)
                 self.undoLastMove()
 
                 if total_score < best_score:
                     best_score = total_score
                     best_move = move
-                    
+
                 beta = min(beta, best_score)
                 if beta <= alpha:
-                    break
+                    break  # Élagage alpha-beta
 
-            for row in board_scores:
-                print(" ".join(f"{str(cell).strip():>4}" for cell in row))  # Rendre chaque cellule de 6 espaces
-            print("\n")
             return best_move, best_score
 
     def getAImove(self):
-        depth = self.getDifficulty()
+        """
+        Utilise Iterative Deepening pour trouver le meilleur coup.
+        Commence avec une profondeur faible et l'augmente progressivement.
+        Garantit un coup même si le temps est écoulé.
+        """
+        base_depth = self.getDifficulty()
+        max_time = 0.95  # 950ms pour laisser une marge de sécurité
+        start_time = time.time()
+
+        best_move = None
+        best_score = float('-inf')
+
         game_copy = deepcopy(self)
         game_copy.isAIgame = False
-        move, _ = game_copy.minimax(depth, maxim=True)
-        return move
+
+        # Iterative Deepening : on augmente progressivement la profondeur
+        # On commence à 1 et on va jusqu'à base_depth + 3 pour aller plus loin si possible
+        for depth in range(1, base_depth + 4):
+            elapsed = time.time() - start_time
+            if elapsed > max_time:
+                break
+
+            try:
+                move, score = game_copy.minimax(depth, maxim=True)
+                if move:
+                    best_move = move
+                    best_score = score
+
+                    # Si on trouve un coup gagnant, pas besoin de chercher plus
+                    if score >= 10000000:
+                        break
+
+            except Exception as e:
+                # En cas d'erreur, on retourne le meilleur coup trouvé jusqu'ici
+                print(f"Erreur dans minimax profondeur {depth}: {e}")
+                break
+
+        # Afficher le temps et la profondeur atteints (pour debug)
+        elapsed = time.time() - start_time
+        print(f"IA: profondeur atteinte = {depth-1 if elapsed > max_time else depth}, temps = {elapsed:.3f}s, score = {best_score}")
+
+        return best_move
 
     def startPlayer(self):
         """Détermine aléatoirement qui commence."""
