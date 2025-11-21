@@ -99,8 +99,8 @@ class Game:
     def getDifficulty(self):
         return {
             "FACILE": 1,
-            "MOYEN": 3,
-            "IMPOSSIBLE": 5,
+            "MOYEN": 2,
+            "IMPOSSIBLE": 4,
         }.get(self.AIdifficulty, 1)
 
     def makeMove(self, x, y, player):
@@ -308,7 +308,7 @@ class Game:
     def orderMoves(self, moves, player):
         """
         Trie les coups par potentiel (meilleurs d'abord) pour optimiser l'élagage alpha-beta.
-        C'est l'optimisation la plus importante pour la vitesse.
+        Version simplifiée pour la vitesse.
         """
         scored_moves = []
 
@@ -318,12 +318,8 @@ class Game:
             self.last_move = move
             self.board[move[0]][move[1]] = self.getSymbolFromPlayer(player)
 
-            # Évaluation rapide
+            # Évaluation rapide (sans detectFork qui est trop lourd)
             score = self.quickEvaluate(player, move)
-
-            # Bonus pour fork (menace multiple)
-            if self.detectFork(player, move):
-                score += 30000
 
             # Annulation
             self.board[move[0]][move[1]] = "."
@@ -670,7 +666,11 @@ class Game:
             # coder le cumule du score
         return score_total
 
-    def minimax(self, depth, maxim, alpha=float('-inf'), beta=float('inf'), current_score=0):
+    def minimax(self, depth, maxim, alpha=float('-inf'), beta=float('inf'), current_score=0, max_depth=None, start_time=None, timeout=0.95):
+        # Vérification timeout
+        if start_time and time.time() - start_time > timeout:
+            return None, current_score
+
         if depth == 0 or self.isDone():
             return None, current_score
 
@@ -681,8 +681,8 @@ class Game:
         # Récupérer les coups possibles
         possible_moves = self.getPossibleMoves()
 
-        # Trier les coups pour optimiser l'élagage alpha-beta (sauf si c'est déjà un coup critique unique)
-        if len(possible_moves) > 1:
+        # Trier SEULEMENT au premier niveau pour économiser du temps
+        if max_depth and depth == max_depth and len(possible_moves) > 1:
             possible_moves = self.orderMoves(possible_moves, current_player)
 
         if maxim:
@@ -696,7 +696,7 @@ class Game:
                     self.undoLastMove()
                     return move, move_score
 
-                _, total_score = self.minimax(depth - 1, False, alpha, beta, current_score + move_score)
+                _, total_score = self.minimax(depth - 1, False, alpha, beta, current_score + move_score, max_depth, start_time, timeout)
                 self.undoLastMove()
 
                 if total_score > best_score:
@@ -720,7 +720,7 @@ class Game:
                     self.undoLastMove()
                     return move, move_score
 
-                _, total_score = self.minimax(depth - 1, True, alpha, beta, current_score - move_score)
+                _, total_score = self.minimax(depth - 1, True, alpha, beta, current_score - move_score, max_depth, start_time, timeout)
                 self.undoLastMove()
 
                 if total_score < best_score:
@@ -740,7 +740,7 @@ class Game:
         Garantit un coup même si le temps est écoulé.
         """
         base_depth = self.getDifficulty()
-        max_time = 0.95  # 950ms pour laisser une marge de sécurité
+        max_time = 0.8  # 800ms pour laisser de la marge
         start_time = time.time()
 
         best_move = None
@@ -750,14 +750,14 @@ class Game:
         game_copy.isAIgame = False
 
         # Iterative Deepening : on augmente progressivement la profondeur
-        # On commence à 1 et on va jusqu'à base_depth + 3 pour aller plus loin si possible
-        for depth in range(1, base_depth + 4):
+        # On commence à 1 et on va jusqu'à base_depth + 2
+        for depth in range(1, base_depth + 3):
             elapsed = time.time() - start_time
             if elapsed > max_time:
                 break
 
             try:
-                move, score = game_copy.minimax(depth, maxim=True)
+                move, score = game_copy.minimax(depth, maxim=True, max_depth=depth, start_time=start_time, timeout=max_time)
                 if move:
                     best_move = move
                     best_score = score
@@ -773,7 +773,8 @@ class Game:
 
         # Afficher le temps et la profondeur atteints (pour debug)
         elapsed = time.time() - start_time
-        print(f"IA: profondeur atteinte = {depth-1 if elapsed > max_time else depth}, temps = {elapsed:.3f}s, score = {best_score}")
+        actual_depth = depth if elapsed <= max_time else depth - 1
+        print(f"IA: profondeur={actual_depth}, temps={elapsed:.3f}s, score={best_score}")
 
         return best_move
 
