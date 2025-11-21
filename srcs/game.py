@@ -99,8 +99,8 @@ class Game:
     def getDifficulty(self):
         return {
             "FACILE": 2,
-            "MOYEN": 5,
-            "IMPOSSIBLE": 7,
+            "MOYEN": 3,
+            "IMPOSSIBLE": 5,
         }.get(self.AIdifficulty, 1)
 
     def makeMove(self, x, y, player):
@@ -150,43 +150,95 @@ class Game:
 
     def getCriticalMoves(self):
         """
-        Détecte les coups critiques (victoires immédiates ou blocages obligatoires).
-        Retourne une liste vide si aucun coup critique n'est trouvé.
+        Détecte les coups critiques : victoires immédiates ET blocages de 4 alignés adverses.
+        CRITIQUE : doit détecter les 4 alignés ouverts de l'adversaire !
         """
-        critical_moves = []
+        win_moves = []
+        block_moves = []
         current_player = self.whoPlay
         opponent = "p2" if current_player == "p1" else "p1"
 
-        # Récupérer tous les coups possibles dans un rayon réduit
+        symbol = self.getSymbolFromPlayer(current_player)
+        opp_symbol = self.getSymbolFromPlayer(opponent)
+
+        # Récupérer tous les coups possibles
         possible_moves = self.getPossibleMovesBase(radius=2)
 
         for move in possible_moves:
-            # Sauvegarder l'état
-            saved_p1_piece = self.p1_piece
-            saved_p2_piece = self.p2_piece
-            saved_turn = self.turn
+            x, y = move
 
-            # Vérifier victoire immédiate pour l'IA
-            symbol = self.getSymbolFromPlayer(current_player)
-            self.board[move[0]][move[1]] = symbol
+            # 1. Vérifier victoire immédiate (5 alignés)
+            self.board[x][y] = symbol
             if self.checkAlignments(symbol, move):
-                self.board[move[0]][move[1]] = "."
-                return [move]  # Victoire immédiate : retourne immédiatement ce coup
-            self.board[move[0]][move[1]] = "."
+                self.board[x][y] = "."
+                return [move]  # Victoire immédiate : jouer immédiatement
 
-            # Vérifier si l'adversaire peut gagner au prochain coup (blocage obligatoire)
-            opp_symbol = self.getSymbolFromPlayer(opponent)
-            self.board[move[0]][move[1]] = opp_symbol
+            # 2. Vérifier si je crée 4 alignés ouverts (menace de victoire)
+            if self.count_in_line(x, y, symbol) >= 4:
+                win_moves.append(move)
+
+            self.board[x][y] = "."
+
+            # 3. Vérifier si l'adversaire peut gagner ici
+            self.board[x][y] = opp_symbol
+
+            # Vérifier victoire adverse
             if self.checkAlignments(opp_symbol, move):
-                critical_moves.append(move)  # Blocage critique
-            self.board[move[0]][move[1]] = "."
+                self.board[x][y] = "."
+                block_moves.insert(0, move)  # Priorité absolue
+                continue
 
-            # Restaurer l'état
-            self.p1_piece = saved_p1_piece
-            self.p2_piece = saved_p2_piece
-            self.turn = saved_turn
+            # Vérifier 4 alignés adverses (menace de victoire au prochain coup)
+            if self.count_in_line(x, y, opp_symbol) >= 4:
+                block_moves.insert(0, move)  # Priorité absolue
 
-        return critical_moves
+            self.board[x][y] = "."
+
+        # Priorité : victoires > blocages > reste
+        if win_moves:
+            return win_moves[:3]  # Top 3 coups gagnants
+        if block_moves:
+            return block_moves[:5]  # Top 5 blocages
+
+        return []
+
+    def count_in_line(self, x, y, symbol):
+        """Compte le nombre maximum de pions alignés en incluant cette position."""
+        directions = [(1, 0), (0, 1), (1, 1), (1, -1)]
+        max_count = 0
+
+        for dx, dy in directions:
+            count = 1  # La position actuelle
+
+            # Compter dans la direction positive
+            i = 1
+            while True:
+                nx, ny = x + dx * i, y + dy * i
+                if 0 <= nx < config.GRID_SIZE and 0 <= ny < config.GRID_SIZE:
+                    if self.board[nx][ny] == symbol:
+                        count += 1
+                        i += 1
+                    else:
+                        break
+                else:
+                    break
+
+            # Compter dans la direction négative
+            i = 1
+            while True:
+                nx, ny = x - dx * i, y - dy * i
+                if 0 <= nx < config.GRID_SIZE and 0 <= ny < config.GRID_SIZE:
+                    if self.board[nx][ny] == symbol:
+                        count += 1
+                        i += 1
+                    else:
+                        break
+                else:
+                    break
+
+            max_count = max(max_count, count)
+
+        return max_count
 
     def getPossibleMovesBase(self, radius=2):
         """Version de base de getPossibleMoves avec rayon configurable."""
@@ -708,20 +760,19 @@ class Game:
         # Récupérer les coups possibles
         possible_moves = self.getPossibleMoves()
 
-        # Au niveau racine : explorer largement, aux niveaux inférieurs : limiter drastiquement
+        # TOUJOURS trier et limiter pour vitesse <1s
         if max_depth and depth == max_depth:
-            # Niveau racine : TOUJOURS trier mais ne PAS limiter (explorer tous les coups)
+            # Niveau racine : vérifier d'abord les coups critiques
             critical_moves = self.getCriticalMoves()
             if critical_moves:
-                # Si coups critiques trouvés, explorer SEULEMENT ceux-là
+                # Coups critiques : explorer SEULEMENT ceux-là
                 possible_moves = critical_moves
             elif len(possible_moves) > 1:
-                # Trier SANS limiter : explore TOUS les coups au niveau racine
-                possible_moves = self.orderMoves(possible_moves, current_player, limit=999)
-        elif depth < max_depth and len(possible_moves) > 1:
-            # Niveaux inférieurs : limitation STRICTE pour la vitesse
-            limit = 8 if len(possible_moves) > 40 else 10
-            possible_moves = self.orderMoves(possible_moves, current_player, limit=limit)
+                # Limiter à 15 coups max même à la racine
+                possible_moves = self.orderMoves(possible_moves, current_player, limit=15)
+        elif len(possible_moves) > 1:
+            # Niveaux inférieurs : limiter à 10 coups
+            possible_moves = self.orderMoves(possible_moves, current_player, limit=10)
 
         if maxim:
             best_score = float("-inf")
