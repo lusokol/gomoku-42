@@ -99,8 +99,8 @@ class Game:
     def getDifficulty(self):
         return {
             "FACILE": 1,
-            "MOYEN": 2,
-            "IMPOSSIBLE": 3,
+            "MOYEN": 3,
+            "IMPOSSIBLE": 4,
         }.get(self.AIdifficulty, 1)
 
     def makeMove(self, x, y, player):
@@ -212,8 +212,24 @@ class Game:
         """
         Retourne les coups possibles dans un rayon de 2.
         NE PAS appeler getCriticalMoves() ici car c'est trop lourd pour minimax.
+        Filtre les coups interdits (double free three).
         """
-        return self.getPossibleMovesBase(radius=2)
+        moves = self.getPossibleMovesBase(radius=2)
+
+        # Filtrer les coups interdits (double free three)
+        current_player = self.whoPlay
+        symbol = self.getSymbolFromPlayer(current_player)
+        legal_moves = []
+
+        for move in moves:
+            if self.is_move_allowed(move, symbol):
+                legal_moves.append(move)
+
+        # Si aucun coup légal trouvé, retourner tous les coups (sécurité)
+        if not legal_moves:
+            return moves
+
+        return legal_moves
 
     def quickEvaluate(self, player, move):
         """
@@ -672,9 +688,15 @@ class Game:
         # Récupérer les coups possibles
         possible_moves = self.getPossibleMoves()
 
-        # Trier SEULEMENT au premier niveau pour économiser du temps
-        if max_depth and depth == max_depth and len(possible_moves) > 1:
-            possible_moves = self.orderMoves(possible_moves, current_player)
+        # Au niveau racine UNIQUEMENT : détecter les coups critiques
+        if max_depth and depth == max_depth:
+            critical_moves = self.getCriticalMoves()
+            if critical_moves:
+                # Si coups critiques trouvés, explorer SEULEMENT ceux-là
+                possible_moves = critical_moves
+            elif len(possible_moves) > 1:
+                # Sinon, trier les coups normalement
+                possible_moves = self.orderMoves(possible_moves, current_player)
 
         if maxim:
             best_score = float("-inf")
@@ -731,14 +753,18 @@ class Game:
         Garantit un coup même si le temps est écoulé.
         """
         base_depth = self.getDifficulty()
-        max_time = 0.8  # 800ms pour laisser de la marge
+        max_time = 0.9  # 900ms pour laisser de la marge
         start_time = time.time()
 
         best_move = None
         best_score = float('-inf')
 
+        # Optimisation : copier avec historique limité pour accélérer deepcopy
         game_copy = deepcopy(self)
         game_copy.isAIgame = False
+        # Nettoyer l'historique pour alléger la copie (garder juste les 10 derniers coups)
+        if len(game_copy.history) > 10:
+            game_copy.history = game_copy.history[-10:]
 
         # Iterative Deepening : on augmente progressivement la profondeur
         # On commence à 1 et on va jusqu'à base_depth + 2
@@ -765,7 +791,8 @@ class Game:
         # Afficher le temps et la profondeur atteints (pour debug)
         elapsed = time.time() - start_time
         actual_depth = depth if elapsed <= max_time else depth - 1
-        print(f"IA: profondeur={actual_depth}, temps={elapsed:.3f}s, score={best_score}")
+        nb_coups = len(self.getPossibleMoves())
+        print(f"IA: profondeur={actual_depth}, temps={elapsed:.3f}s, coups_legaux={nb_coups}, score={best_score}")
 
         return best_move
 
