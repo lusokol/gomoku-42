@@ -98,9 +98,9 @@ class Game:
 
     def getDifficulty(self):
         return {
-            "FACILE": 1,
-            "MOYEN": 3,
-            "IMPOSSIBLE": 4,
+            "FACILE": 2,
+            "MOYEN": 4,
+            "IMPOSSIBLE": 6,
         }.get(self.AIdifficulty, 1)
 
     def makeMove(self, x, y, player):
@@ -234,7 +234,7 @@ class Game:
     def quickEvaluate(self, player, move):
         """
         Évaluation ULTRA-RAPIDE d'un coup pour le tri (move ordering).
-        Juste compter les pions autour, pas de checkAlignments.
+        Avec détection de menaces multiples (fork) qui est CRITIQUE.
         """
         score = 0
         symbol = self.getSymbolFromPlayer(player)
@@ -244,12 +244,16 @@ class Game:
 
         directions = [(1, 0), (0, 1), (1, 1), (1, -1)]
 
+        # Compteurs pour détection de fork
+        my_threats = 0  # Nombre de menaces créées
+        opp_threats_blocked = 0  # Nombre de menaces adverses bloquées
+
         # Compter rapidement les alignements
         for dx, dy in directions:
             # Compter pions du joueur
             my_count = 0
             opp_count = 0
-            open_ends = 0
+            my_open_ends = 0
 
             # Direction négative
             for i in range(1, 5):
@@ -258,7 +262,7 @@ class Game:
                     if self.board[nx][ny] == symbol:
                         my_count += 1
                     elif self.board[nx][ny] == ".":
-                        open_ends += 1
+                        my_open_ends += 1
                         break
                     elif self.board[nx][ny] == opp_symbol:
                         opp_count += 1
@@ -275,7 +279,7 @@ class Game:
                     if self.board[nx][ny] == symbol:
                         my_count += 1
                     elif self.board[nx][ny] == ".":
-                        open_ends += 1
+                        my_open_ends += 1
                         break
                     elif self.board[nx][ny] == opp_symbol:
                         opp_count += 1
@@ -291,19 +295,33 @@ class Game:
             if total_mine >= 5:
                 return 10000000
 
-            # Blocage critique (4 adverses)
+            # Blocage critique (4+ adverses)
             if opp_count >= 4:
                 score += 9000000
+                opp_threats_blocked += 1
+            elif opp_count == 3:
+                score += 50000
+                opp_threats_blocked += 1
 
-            # Scoring simplifié
+            # Scoring simplifié pour mes coups
             if total_mine == 4:
-                score += 100000 if open_ends >= 1 else 15000
+                score += 100000 if my_open_ends >= 1 else 15000
+                if my_open_ends >= 1:
+                    my_threats += 1  # Menace de victoire
             elif total_mine == 3:
-                score += 12000 if open_ends >= 1 else 3000
+                score += 12000 if my_open_ends >= 2 else 3000
+                if my_open_ends >= 2:
+                    my_threats += 1  # Menace potentielle
             elif total_mine == 2:
-                score += 800 if open_ends >= 1 else 300
-            else:
-                score += 50
+                score += 800 if my_open_ends >= 1 else 300
+
+        # BONUS FORK : Si création de menaces multiples = TRÈS puissant
+        if my_threats >= 2:
+            score += 50000  # Fork = quasi-gagnant
+
+        # BONUS blocage menaces multiples
+        if opp_threats_blocked >= 2:
+            score += 30000
 
         # Bonus central minime
         center = config.GRID_SIZE // 2
@@ -312,10 +330,10 @@ class Game:
 
         return score
 
-    def orderMoves(self, moves, player):
+    def orderMoves(self, moves, player, limit=12):
         """
-        Trie les coups par potentiel (meilleurs d'abord) pour optimiser l'élagage alpha-beta.
-        Version simplifiée pour la vitesse.
+        Trie les coups par potentiel et ne garde que les N meilleurs.
+        CRUCIAL pour profondeur 6 : 12^6 = 3M nœuds (gérable) vs 50^6 = 15 milliards (impossible).
         """
         scored_moves = []
 
@@ -325,7 +343,7 @@ class Game:
             self.last_move = move
             self.board[move[0]][move[1]] = self.getSymbolFromPlayer(player)
 
-            # Évaluation rapide (sans detectFork qui est trop lourd)
+            # Évaluation rapide
             score = self.quickEvaluate(player, move)
 
             # Annulation
@@ -334,9 +352,11 @@ class Game:
 
             scored_moves.append((score, move))
 
-        # Tri décroissant : meilleurs coups en premier
+        # Tri décroissant et limitation STRICTE
         scored_moves.sort(reverse=True, key=lambda x: x[0])
-        return [move for _, move in scored_moves]
+
+        # Ne garder que les N meilleurs coups
+        return [move for _, move in scored_moves[:limit]]
 
     def isThreat(self, player, pos, dx, dy):
         """
@@ -695,8 +715,17 @@ class Game:
                 # Si coups critiques trouvés, explorer SEULEMENT ceux-là
                 possible_moves = critical_moves
             elif len(possible_moves) > 1:
-                # Sinon, trier les coups normalement
-                possible_moves = self.orderMoves(possible_moves, current_player)
+                # Limitation adaptative selon la phase de jeu
+                # Début de partie (peu de coups) : explorer plus
+                # Milieu/fin de partie (beaucoup de coups) : limiter drastiquement
+                if len(possible_moves) <= 20:
+                    limit = 15  # Début de partie
+                elif len(possible_moves) <= 40:
+                    limit = 12  # Milieu de partie
+                else:
+                    limit = 10  # Fin de partie (beaucoup de coups)
+
+                possible_moves = self.orderMoves(possible_moves, current_player, limit=limit)
 
         if maxim:
             best_score = float("-inf")
@@ -753,7 +782,7 @@ class Game:
         Garantit un coup même si le temps est écoulé.
         """
         base_depth = self.getDifficulty()
-        max_time = 0.9  # 900ms pour laisser de la marge
+        max_time = 2.5  # 2.5s pour permettre profondeur 6
         start_time = time.time()
 
         best_move = None
@@ -767,8 +796,8 @@ class Game:
             game_copy.history = game_copy.history[-10:]
 
         # Iterative Deepening : on augmente progressivement la profondeur
-        # On commence à 1 et on va jusqu'à base_depth + 2
-        for depth in range(1, base_depth + 3):
+        # Commencer à 2 (plus rapide) et aller jusqu'à base_depth + 1
+        for depth in range(2, base_depth + 2):
             elapsed = time.time() - start_time
             if elapsed > max_time:
                 break
@@ -792,7 +821,8 @@ class Game:
         elapsed = time.time() - start_time
         actual_depth = depth if elapsed <= max_time else depth - 1
         nb_coups = len(self.getPossibleMoves())
-        print(f"IA: profondeur={actual_depth}, temps={elapsed:.3f}s, coups_legaux={nb_coups}, score={best_score}")
+        nb_coups_explores = len(game_copy.getCriticalMoves()) if game_copy.getCriticalMoves() else min(nb_coups, 15)
+        print(f"IA: prof={actual_depth}, temps={elapsed:.2f}s, coups={nb_coups}, explores={nb_coups_explores}, score={best_score}")
 
         return best_move
 
